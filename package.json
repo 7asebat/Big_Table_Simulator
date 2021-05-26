@@ -1,0 +1,17 @@
+{
+  "name": "bigtablesimulator-node",
+  "version": "1.0.0",
+  "description": "A simulator for Google's bigtable distributed file system",
+  "main": "Master.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.1.2",
+    "socket.io-client": "^4.1.2",
+    "zeromq": "^5.2.8"
+  }
+}

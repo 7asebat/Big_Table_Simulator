@@ -8,6 +8,7 @@ csv = fs.readFileSync(path.join(".","..","assets",csvFileName))
 let rows = csv.toString().split("\r\n");
 let keys=[]
 let jsonObjects = []
+i=1;
 rows.forEach((row,index)=>{
     if(index==0){
         keys = row.split(',')
@@ -16,9 +17,15 @@ rows.forEach((row,index)=>{
         let vals = row.split(',')
         let entry = {}
         keys.forEach((key,index)=>{
+            if(key == "user_id"){
+                entry[key] = i;
+            }
+            else{
             entry[key] = vals[index]
+            }
         })
         jsonObjects.push(entry)
+        i++
     }
 });
 
