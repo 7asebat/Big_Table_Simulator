@@ -6,7 +6,7 @@
     }]
 */
 
-module.exports = (tablets)=>{
+module.exports = (tablets,MAX_TABLET_SIZE,usersLength)=>{
     const division = Math.floor(tablets.length/2);
     let ids_1=[], ids_2=[]
     for(let i=0;i<tablets.length;i++){
@@ -17,10 +17,10 @@ module.exports = (tablets)=>{
     }
     return [{
         "tablets_count":division,
-        "tablets_ids":ids_1
+        "tablets_ids":[1,Math.floor(usersLength/2)]
     },
     {
         "tablets_count":tablets.length-division,
-        "tablets_ids":ids_2
+        "tablets_ids":[Math.floor(usersLength/2+1),usersLength]
     }]
 }

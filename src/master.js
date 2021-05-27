@@ -6,7 +6,7 @@ const { socket } = require("zeromq");
 const PORT = 3000;
 const io = require("socket.io")(PORT);
 let tablets = partitionData(bigTable,MAX_TABLET_SIZE);
-let metadata = generateMetadata(tablets);
+let metadata = generateMetadata(tablets,MAX_TABLET_SIZE,bigTable.length);
 
 let clientConnections = []
 let tabletConnections = []
