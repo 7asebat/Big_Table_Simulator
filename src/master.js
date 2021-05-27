@@ -19,8 +19,12 @@ io.on("connection", socket => {
             socket.join("client");
             io.to(socket.id).emit("metadata",metadata);
         }
-        else if(data.type == "tablet")
+        else if(data.type == "tablet"){
             tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1});
+            tabletsIds = metadata[tabletConnections.length-1].tablets_ids;
+            io.to(socket.id).emit("tablets",tablets.slice(tabletsIds[0],tabletsIds[tabletsIds.length-1]+1));
+        }
+
         console.log({clientConnections,tabletConnections});
     });
 
