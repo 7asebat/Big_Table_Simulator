@@ -1,16 +1,29 @@
-const PORT = 3000
-let socket = require('socket.io-client')(`http://localhost:${PORT}`);
+const MASTER_PORT = 3000
+const TABLET1_PORT = 4000
+const TABLET2_PORT = 5000
+
+let masterSocket = require('socket.io-client')(`http://localhost:${MASTER_PORT}`);
+let tablet1Socket = require('socket.io-client')(`http://localhost:${TABLET1_PORT}`);
+let tablet2Socket = require('socket.io-client')(`http://localhost:${TABLET2_PORT}`);
+
 let metadata=[];
 
-socket.on("connect", () => {
-  socket.send({"type":"client"});
+masterSocket.on("connect", () => {
+  masterSocket.send({"type":"client"});
 });
 
-socket.on("metadata",(data)=>{
+masterSocket.on("metadata",(data)=>{
   metadata = data;
   console.log("Received metadata from master\n",metadata);
 });
 
-socket.on("Testing broadcasting",()=>{
-  console.log("Received msg");
+tablet1Socket.on("connect",()=>{
+  console.log("Connected to tablet 1");
+});
+
+
+tablet2Socket.on("connect",()=>{
+  console.log("Connected to tablet 2");
 })
+
+
