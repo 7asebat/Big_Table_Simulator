@@ -3,20 +3,17 @@
         {
             "type":"Set",
             "row_key":1000,
-            "column":"user_screen_name",
-            "data":"shawama"
+            "columns":{"user_screen_name":"shoma"}
         },
         {
             "type":"Read",
-            "row_key":1000,
-            "column":"user_screen_name",
-            "data":""
+            "row_key":[1000,2000,3000],
+            "columns":{}
         },
         {
             "type":"Set",
             "row_key":1000,
-            "column":"user_screen_name",
-            "data":"shawama"
+            "columns":{"user_screen_name":"shoma2"}
         }
     ]
 ]
