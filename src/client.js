@@ -29,6 +29,15 @@ const init = async () => {
   return Promise.all(promises);
 };
 
+const checkKeyServer = (key)=>{
+  tabletId = -1;
+  metadata.forEach((entry,index)=>{
+    if(key >= entry.tablets_ids[0] && key <= entry.tablets_ids[1])
+        tabletId = index+1;
+  });
+  return tabletId;
+};
+
 (async () => {
   await init();
   console.log("connected successfully");
@@ -61,3 +70,4 @@ masterSocket.on("metadata", (data) => {
   metadata = data;
   console.log("Received metadata from master\n", metadata);
 });
+
