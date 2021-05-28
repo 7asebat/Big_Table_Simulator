@@ -10,7 +10,7 @@ socket.on("connect", () => {
 
 socket.on("tablets",(data)=>{
   tablets = data;
-  console.log(tablets);
+  // console.log(tablets);
 });
 
 io.on("connection", socket => {
