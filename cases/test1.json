@@ -1,0 +1,22 @@
+[
+    [
+        {
+            "type":"Set",
+            "row_key":1000,
+            "column":"user_screen_name",
+            "data":"shawama"
+        },
+        {
+            "type":"Read",
+            "row_key":1000,
+            "column":"user_screen_name",
+            "data":""
+        },
+        {
+            "type":"Set",
+            "row_key":1000,
+            "column":"user_screen_name",
+            "data":"shawama"
+        }
+    ]
+]

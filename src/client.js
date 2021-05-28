@@ -6,7 +6,9 @@ let masterSocket = require('socket.io-client')(`http://localhost:${MASTER_PORT}`
 let tablet1Socket = require('socket.io-client')(`http://localhost:${TABLET1_PORT}`);
 let tablet2Socket = require('socket.io-client')(`http://localhost:${TABLET2_PORT}`);
 
+let queries = require("./../cases/test1.json");
 let metadata=[];
+
 
 masterSocket.on("connect", () => {
   masterSocket.send({"type":"client"});
@@ -24,6 +26,7 @@ tablet1Socket.on("connect",()=>{
 
 tablet2Socket.on("connect",()=>{
   console.log("Connected to tablet 2");
-})
+});
+
 
 
