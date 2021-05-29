@@ -9,8 +9,10 @@ let updatedData = [];
 
 //Send an event to master server to update main table
 setInterval(function () {
-  socket.emit("periodic_update", updatedData);
-  updatedData = [];
+  if(updatedData.length){
+    socket.emit("periodic_update", updatedData);
+    updatedData = [];
+  }
 }, 60 * 1000); // 60 * 1000 milsec
 
 const getTabletIndex = (row_key) => {
