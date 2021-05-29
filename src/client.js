@@ -58,6 +58,7 @@ const targetServers = (keys) => {
 
         case "DeleteCells":
           //Handle Delete cells queries
+          handleDeleteCellsRequest(op);
           break;
 
         case "Add":
@@ -81,6 +82,7 @@ masterSocket.on("metadata", (data) => {
 const handleReadRequest = (op) => {
   tabletsKeys = targetServers(op.row_key);
   serverQueries = [];
+  //Separate queries for each tablet
   tabletsKeys.forEach((tabletKeys) => {
     if (tabletKeys.length != 0) {
       tempQuery = Object.assign({}, op);
@@ -88,14 +90,44 @@ const handleReadRequest = (op) => {
       serverQueries.push(tempQuery);
     }
   });
+  //Send each query to it's target server
+  promises=[]
   serverQueries.forEach((q, index) => {
     const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-    new Promise((resolve) => {
+    promises.push(new Promise((resolve) => {
       tabletSocket.emit("Read", q, (res) => {
         message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
         console.log(message,res);
         resolve(res);
       });
-    });
+    }));
   });
+  Promise.all(promises);
+};
+
+
+const handleDeleteCellsRequest = (op) => {
+  tabletsKeys = targetServers([op.row_key]);
+  serverQueries = [];
+  //Separate queries for each tablet
+  tabletsKeys.forEach((tabletKeys) => {
+    if (tabletKeys.length != 0) {
+      tempQuery = Object.assign({}, op);
+      tempQuery.row_key = tabletKeys;
+      serverQueries.push(tempQuery);
+    }
+  });
+  //Send each query to it's target server
+  promises=[]
+  serverQueries.forEach((q, index) => {
+    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
+    promises.push(new Promise((resolve) => {
+      tabletSocket.emit("DeleteCells", q, (res) => {
+        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
+        console.log(message,res);
+        resolve(res);
+      });
+    }));
+  });
+  Promise.all(promises);
 };

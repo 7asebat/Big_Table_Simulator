@@ -7,7 +7,7 @@ const binarySearch = function (arr, x, start, end) {
     let mid=Math.floor((start + end)/2);
    
     // Compare mid with given key x
-    if (arr[mid].user_id===x) return arr[mid];
+    if (arr[mid].user_id===x) return {"data":arr[mid],"index":mid};
           
     // If element at mid is greater than x,
     // search in the left half of mid

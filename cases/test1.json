@@ -11,9 +11,9 @@
             "columns":{}
         },
         {
-            "type":"Set",
+            "type":"DeleteCells",
             "row_key":1000,
-            "columns":{"user_screen_name":"shoma2"}
+            "columns":["user_screen_name","indegree"]
         }
     ]
 ]
