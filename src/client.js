@@ -46,32 +46,30 @@ const targetServers = (keys) => {
   await init();
   console.log("connected successfully");
   queries.forEach((query) => {
-    query.forEach((op) => {
-      switch (op.type) {
-        case "Set":
-          //Handle set queries
-          handleSetRequest(op);
-          break;
+    switch (query.type) {
+      case "Set":
+        //Handle set queries
+        handleSetRequest(query);
+        break;
 
-        case "DeleteRow":
-          //Handle Delete row queries
-          break;
+      case "DeleteRow":
+        //Handle Delete row queries
+        break;
 
-        case "DeleteCells":
-          //Handle Delete cells queries
-          handleDeleteCellsRequest(op);
-          break;
+      case "DeleteCells":
+        //Handle Delete cells queries
+        handleDeleteCellsRequest(query);
+        break;
 
-        case "Add":
-          //Handle Add queries
-          break;
+      case "Add":
+        //Handle Add queries
+        break;
 
-        case "Read":
-          //Handle Read queries
-          handleReadRequest(op);
-          break;
-      }
-    });
+      case "Read":
+        //Handle Read queries
+        handleReadRequest(query);
+        break;
+    }
   });
 })();
 
@@ -80,32 +78,32 @@ masterSocket.on("metadata", (data) => {
   console.log("Received metadata from master\n", metadata);
 });
 
-const handleReadRequest = (op) => {
+const handleReadRequest = (query) => {
   //Send each query to it's target server
-  promises = globalHandler("read", op);
+  promises = globalHandler("read", query);
   Promise.all(promises);
 };
 
-const handleDeleteCellsRequest = (op) => {
+const handleDeleteCellsRequest = (query) => {
   //Send each query to it's target server
-  promises = globalHandler("delete_cells", op);
+  promises = globalHandler("delete_cells", query);
   Promise.all(promises);
 };
 
-const handleSetRequest = (op) => {
+const handleSetRequest = (query) => {
   //Send each query to it's target server
-  promises = globalHandler("set", op);
+  promises = globalHandler("set", query);
   Promise.all(promises);
 };
 
-const initQuery = (op) => {
+const initQuery = (query) => {
   tabletsKeys =
-    op.type == "Read" ? targetServers(op.row_key) : targetServers([op.row_key]);
+    query.type == "Read" ? targetServers(query.row_key) : targetServers([query.row_key]);
   serverQueries = [];
   //Separate queries for each tablet
   tabletsKeys.forEach((tabletKeys) => {
     if (tabletKeys.length != 0) {
-      tempQuery = Object.assign({}, op);
+      tempQuery = Object.assign({}, query);
       tempQuery.row_key = tabletKeys;
       serverQueries.push(tempQuery);
     }
@@ -113,8 +111,8 @@ const initQuery = (op) => {
   return serverQueries;
 };
 
-const globalHandler = (type, op) => {
-  serverQueries = initQuery(op);
+const globalHandler = (type, query) => {
+  serverQueries = initQuery(query);
   promises = [];
   serverQueries.forEach((q, index) => {
     const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;

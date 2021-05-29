@@ -1,5 +1,9 @@
 [
-    [
+        {
+            "type":"Read",
+            "row_key":[1000,2000,3000,6000],
+            "columns":{}
+        },
         {
             "type":"Set",
             "row_key":1000,
@@ -15,5 +19,4 @@
             "row_key":1000,
             "columns":["user_screen_name","indegree"]
         }
-    ]
 ]
