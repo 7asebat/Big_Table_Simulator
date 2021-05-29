@@ -83,35 +83,15 @@ masterSocket.on("metadata", (data) => {
 const handleReadRequest = (op) => {
   serverQueries= initQuery(op);
   //Send each query to it's target server
-  promises=[]
-  serverQueries.forEach((q, index) => {
-    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-    promises.push(new Promise((resolve) => {
-      tabletSocket.emit("read", q, (res) => {
-        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
-        console.log(message,res);
-        resolve(res);
-      });
-    }));
-  });
+  promises=globalHandler("read");
   Promise.all(promises);
 };
 
 
 const handleDeleteCellsRequest = (op) => {
-  serverQueries= initQuery(op);
+  serverQueries = initQuery(op);
   //Send each query to it's target server
-  promises=[]
-  serverQueries.forEach((q, index) => {
-    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-    promises.push(new Promise((resolve) => {
-      tabletSocket.emit("delete_cells", q, (res) => {
-        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
-        console.log(message,res);
-        resolve(res);
-      });
-    }));
-  });
+  promises=globalHandler("delete_cells");
   Promise.all(promises);
 };
 
@@ -119,22 +99,12 @@ const handleDeleteCellsRequest = (op) => {
 const handleSetRequest = (op) => {
   serverQueries= initQuery(op);
   //Send each query to it's target server
-  promises=[]
-  serverQueries.forEach((q, index) => {
-    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-    promises.push(new Promise((resolve) => {
-      tabletSocket.emit("set", q, (res) => {
-        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
-        console.log(message,res);
-        resolve(res);
-      });
-    }));
-  });
+  promises=globalHandler("set");
   Promise.all(promises);
 };
 
 const initQuery = (op)=>{
-  tabletsKeys = targetServers([op.row_key]);
+  tabletsKeys = op.type == "Read" ? targetServers(op.row_key):targetServers([op.row_key]);
   serverQueries = [];
   //Separate queries for each tablet
   tabletsKeys.forEach((tabletKeys) => {
@@ -145,4 +115,19 @@ const initQuery = (op)=>{
     }
   });
   return serverQueries;
+}
+
+const globalHandler = (type)=>{
+  promises=[]
+  serverQueries.forEach((q, index) => {
+    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
+    promises.push(new Promise((resolve) => {
+      tabletSocket.emit(`${type}`, q, (res) => {
+        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
+        console.log(message,res);
+        resolve(res);
+      });
+    }));
+  });
+  return promises;
 }
