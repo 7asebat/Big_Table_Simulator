@@ -2,11 +2,11 @@ const MAX_TABLET_SIZE = 1000;
 const bigTable = require("./../assets/users.json");
 const partitionData = require("./../utils/partitionData.js");
 const generateMetadata = require("./../utils/generateMetadata.js");
-const { socket } = require("zeromq");
 const PORT = 3000;
 const io = require("socket.io")(PORT);
 let tablets = partitionData(bigTable,MAX_TABLET_SIZE);
 let metadata = generateMetadata(tablets,MAX_TABLET_SIZE,bigTable.length);
+const {binarySearch} = require("./../utils/binarySearch");
 
 let clientConnections = []
 let tabletConnections = []
@@ -35,7 +35,20 @@ io.on("connection", socket => {
         clientConnections=clientConnections.filter(connection=>connection.socket_id!==socket.id);
         tabletConnections=tabletConnections.filter(connection=>connection.socket_id!==socket.id);
         console.log({clientConnections,tabletConnections});
-    })
+    });
+
+    socket.on("periodic_update",(updatedData)=>{
+        updatedElements=[];
+        updatedData.forEach(el=>{
+            let{data,index} = binarySearch(bigTable,el.user_id,0,bigTable.length-1);
+            if (index != -1){
+                bigTable[index] = el;
+                updatedElements.push(bigTable[index]);
+            }
+        });
+        socketName = tabletConnections[0].socket_id == socket.id ? "Tablet 1":"Tablet 2";
+        console.log(`Server ${socketName} periodically updated elements: `,updatedElements);
+    });
 });
 
 

@@ -95,7 +95,7 @@ const handleReadRequest = (op) => {
   serverQueries.forEach((q, index) => {
     const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
     promises.push(new Promise((resolve) => {
-      tabletSocket.emit("Read", q, (res) => {
+      tabletSocket.emit("read", q, (res) => {
         message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
         console.log(message,res);
         resolve(res);
@@ -122,7 +122,7 @@ const handleDeleteCellsRequest = (op) => {
   serverQueries.forEach((q, index) => {
     const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
     promises.push(new Promise((resolve) => {
-      tabletSocket.emit("DeleteCells", q, (res) => {
+      tabletSocket.emit("delete_cells", q, (res) => {
         message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
         console.log(message,res);
         resolve(res);

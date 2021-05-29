@@ -1,7 +1,7 @@
 const binarySearch = function (arr, x, start, end) {
        
     // Base Condition
-    if (start > end) return false;
+    if (start > end) return {"data":null,"index":-1};
    
     // Find the middle index
     let mid=Math.floor((start + end)/2);
