@@ -27,7 +27,9 @@ socket.on("tablets", (data) => {
 
 io.on("connection", (socket) => {
   console.log("Client connected ", socket.id);
+
   socket.on("Read", (q,cb) => {
+    console.log("Received read request from client with socket id = ", socket.id);
     console.log(q);
     results = []
     q.row_key.forEach((key) => {
