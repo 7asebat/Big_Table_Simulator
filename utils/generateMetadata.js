@@ -17,10 +17,10 @@ module.exports = (tablets,MAX_TABLET_SIZE,usersLength)=>{
     }
     return [{
         "tablets_count":division,
-        "tablets_ids":[1,Math.floor(usersLength/2)]
+        "tablets_range":[1,Math.floor(usersLength/2)]
     },
     {
         "tablets_count":tablets.length-division,
-        "tablets_ids":[Math.floor(usersLength/2+1),usersLength]
+        "tablets_range":[Math.floor(usersLength/2+1),usersLength]
     }]
 }

@@ -21,8 +21,11 @@ io.on("connection", socket => {
         }
         else if(data.type == "tablet"){
             tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1});
-            tabletsIds = metadata[tabletConnections.length-1].tablets_ids;
-            io.to(socket.id).emit("tablets",tablets.slice(tabletsIds[0],tabletsIds[tabletsIds.length-1]+1));
+            tabletsIds = metadata[tabletConnections.length-1].tablets_range;
+            start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
+            end = Math.floor(tabletsIds[1]/MAX_TABLET_SIZE)+1; 
+            console.log(start,end,tabletsIds)
+            io.to(socket.id).emit("tablets",tablets.slice(start,end));
         }
 
         console.log({clientConnections,tabletConnections});
