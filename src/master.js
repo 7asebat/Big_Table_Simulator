@@ -37,8 +37,9 @@ io.on("connection", socket => {
         console.log({clientConnections,tabletConnections});
     });
 
-    socket.on("periodic_update",(updatedData)=>{
+    socket.on("periodic_update",(updatedData,deletedData)=>{
         updatedElements=[];
+        deletedElements=[];
         updatedData.forEach(el=>{
             let{data,index} = binarySearch(bigTable,el.user_id,0,bigTable.length-1);
             if (index != -1){
@@ -46,8 +47,17 @@ io.on("connection", socket => {
                 updatedElements.push(bigTable[index]);
             }
         });
+        deletedData.forEach(el=>{
+            let{data,index} = binarySearch(bigTable,el.user_id,0,bigTable.length-1);
+            if (index != -1){
+                deletedEl=bigTable.splice(index,1);
+                deletedElements.push(deletedEl);
+            }
+        });
         socketName = tabletConnections[0].socket_id == socket.id ? "Tablet 1":"Tablet 2";
         console.log(`Server ${socketName} periodically updated elements: `,updatedElements);
+        console.log(`Server ${socketName} periodically deleted elements: `,deletedElements);
+
     });
 });
 

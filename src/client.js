@@ -54,6 +54,8 @@ const targetServers = (keys) => {
 
       case "DeleteRow":
         //Handle Delete row queries
+        console.log("HERE");
+        handleDeleteRowRequest(query);
         break;
 
       case "DeleteCells":
@@ -96,9 +98,16 @@ const handleSetRequest = (query) => {
   Promise.all(promises);
 };
 
+const handleDeleteRowRequest = (query) => {
+  //Send each query to it's target server
+  promises = globalHandler("delete_row", query);
+  Promise.all(promises);
+};
+
 const initQuery = (query) => {
+  console.log(query);
   tabletsKeys =
-    query.type == "Read" ? targetServers(query.row_key) : targetServers([query.row_key]);
+    (query.type == "Read" || query.type == "DeleteRow") ? targetServers(query.row_key) : targetServers([query.row_key]);
   serverQueries = [];
   //Separate queries for each tablet
   tabletsKeys.forEach((tabletKeys) => {

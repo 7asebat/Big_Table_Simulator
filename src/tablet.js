@@ -6,11 +6,11 @@ const { binarySearch } = require("./../utils/binarySearch");
 
 //Holds data ids to be updated periodically
 let updatedData = [];
-
+let deletedData = [];
 //Send an event to master server to update main table
 setInterval(function () {
-  if(updatedData.length){
-    socket.emit("periodic_update", updatedData);
+  if (updatedData.length || deletedData.length) {
+    socket.emit("periodic_update", updatedData, deletedData);
     updatedData = [];
   }
 }, 60 * 1000); // 60 * 1000 milsec
@@ -44,7 +44,7 @@ io.on("connection", (socket) => {
       socket.id
     );
     console.log(q);
-    results = requestHandler("Read",q);
+    results = requestHandler("Read", q);
     cb(results);
   });
 
@@ -54,7 +54,17 @@ io.on("connection", (socket) => {
       socket.id
     );
     console.log(q);
-    results = requestHandler("DeleteCells",q);
+    results = requestHandler("DeleteCells", q);
+    cb(results);
+  });
+
+  socket.on("delete_row", (q, cb) => {
+    console.log(
+      "Received delete row request from client with socket id = ",
+      socket.id
+    );
+    console.log(q);
+    results = requestHandler("DeleteRow", q);
     cb(results);
   });
 
@@ -64,7 +74,7 @@ io.on("connection", (socket) => {
       socket.id
     );
     console.log(q);
-    results = requestHandler("Set",q);
+    results = requestHandler("Set", q);
     cb(results);
   });
 });
@@ -78,33 +88,56 @@ const requestHandler = (type, q) => {
   results = [];
   q.row_key.forEach((key) => {
     tablet_id = getTabletIndex(key);
-    let { data, index } = binarySearch(
-      tablets[tablet_id],
-      key,
-      0,
-      tablets[tablet_id].length - 1
-    );
-    switch (type) {
-      case "Set":
-        Object.entries(q.columns_data).forEach(([key, value]) => {
-          tablets[tablet_id][index][`${key}`] = value;
-        });
-        if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
-        results.push(data);
-        break;
+    if (tablet_id == -1) results.push(`row with user_id = ${key} wasn't found`);
+    else {
+      let { data, index } = binarySearch(
+        tablets[tablet_id],
+        key,
+        0,
+        tablets[tablet_id].length - 1
+      );
+      switch (type) {
+        case "Set":
+          if (index == -1)
+            results.push(`row with user_id = ${key} wasn't found`);
+          else {
+            Object.entries(q.columns_data).forEach(([key, value]) => {
+              tablets[tablet_id][index][`${key}`] = value;
+            });
+            if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
+            results.push(data);
+          }
+          break;
 
-      case "DeleteCells":
-        q.columns.forEach((column) => {
-          tablets[tablet_id][index][`${column}`] = null;
-        });
-        if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
-        results.push(data);
-        break;
+        case "DeleteCells":
+          if (index == -1)
+            results.push(`row with user_id = ${key} wasn't found`);
+          else {
+            q.columns.forEach((column) => {
+              tablets[tablet_id][index][`${column}`] = null;
+            });
+            if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
+            results.push(data);
+          }
+          break;
 
-      case "Read":
-        if (index == -1) results.push(`row with user_id = ${key} wasn't found`);
-        else results.push(data);
-        break;
+        case "Read":
+          if (index == -1)
+            results.push(`row with user_id = ${key} wasn't found`);
+          else results.push(data);
+          break;
+
+        case "DeleteRow":
+          if (index == -1)
+            results.push(`row with user_id = ${key} wasn't found`);
+          else {
+            deletedEl = tablets[tablet_id].splice(index, 1);
+            console.log("Deleted: ", deletedEl);
+            results.push(`Entry with key = ${key} is deleted successfully`);
+            deletedData.push(data);
+          }
+          break;
+      }
     }
   });
   return results;

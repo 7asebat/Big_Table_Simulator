@@ -10,7 +10,7 @@
             "columns_data":{"user_screen_name":"shoma","indegree":300}
         },
         {
-            "type":"Read",
+            "type":"DeleteRow",
             "row_key":[1000,2000,3000,6000],
             "columns":{}
         },
