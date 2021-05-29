@@ -29,40 +29,47 @@ const init = async () => {
   return Promise.all(promises);
 };
 
-const checkKeyServer = (key)=>{
-  tabletId = -1;
-  metadata.forEach((entry,index)=>{
-    if(key >= entry.tablets_ids[0] && key <= entry.tablets_ids[1])
-        tabletId = index+1;
+const targetServers = (keys) => {
+  tablet1Keys = [];
+  tablet2Keys = [];
+  keys.forEach((key) => {
+    metadata.forEach((entry, index) => {
+      if (key >= entry.tablets_range[0] && key <= entry.tablets_range[1])
+        index + 1 == 1 ? tablet1Keys.push(key) : tablet2Keys.push(key);
+    });
   });
-  return tabletId;
+
+  return [tablet1Keys, tablet2Keys];
 };
 
 (async () => {
   await init();
   console.log("connected successfully");
   queries.forEach((query) => {
-    switch (query.type) {
-      case "Set":
-        //Handle set queries
-        break;
+    query.forEach((op) => {
+      switch (op.type) {
+        case "Set":
+          //Handle set queries
+          break;
 
-      case "DeleteRow":
-        //Handle Delete row queries
-        break;
+        case "DeleteRow":
+          //Handle Delete row queries
+          break;
 
-      case "DeleteCells":
-        //Handle Delete cells queries
-        break;
+        case "DeleteCells":
+          //Handle Delete cells queries
+          break;
 
-      case "Add":
-        //Handle Add queries
-        break;
+        case "Add":
+          //Handle Add queries
+          break;
 
-      case "Read":
-        //Handle Read queries
-        break;
-    }
+        case "Read":
+          //Handle Read queries
+          handleReadRequest(op);
+          break;
+      }
+    });
   });
 })();
 
@@ -71,3 +78,24 @@ masterSocket.on("metadata", (data) => {
   console.log("Received metadata from master\n", metadata);
 });
 
+const handleReadRequest = (op) => {
+  tabletsKeys = targetServers(op.row_key);
+  serverQueries = [];
+  tabletsKeys.forEach((tabletKeys) => {
+    if (tabletKeys.length != 0) {
+      tempQuery = Object.assign({}, op);
+      tempQuery.row_key = tabletKeys;
+      serverQueries.push(tempQuery);
+    }
+  });
+  serverQueries.forEach((q, index) => {
+    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
+    new Promise((resolve) => {
+      tabletSocket.emit("Read", q, (res) => {
+        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
+        console.log(message,res);
+        resolve(res);
+      });
+    });
+  });
+};
