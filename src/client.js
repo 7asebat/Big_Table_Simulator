@@ -50,6 +50,7 @@ const targetServers = (keys) => {
       switch (op.type) {
         case "Set":
           //Handle set queries
+          handleSetRequest(op);
           break;
 
         case "DeleteRow":
@@ -80,16 +81,7 @@ masterSocket.on("metadata", (data) => {
 });
 
 const handleReadRequest = (op) => {
-  tabletsKeys = targetServers(op.row_key);
-  serverQueries = [];
-  //Separate queries for each tablet
-  tabletsKeys.forEach((tabletKeys) => {
-    if (tabletKeys.length != 0) {
-      tempQuery = Object.assign({}, op);
-      tempQuery.row_key = tabletKeys;
-      serverQueries.push(tempQuery);
-    }
-  });
+  serverQueries= initQuery(op);
   //Send each query to it's target server
   promises=[]
   serverQueries.forEach((q, index) => {
@@ -107,16 +99,7 @@ const handleReadRequest = (op) => {
 
 
 const handleDeleteCellsRequest = (op) => {
-  tabletsKeys = targetServers([op.row_key]);
-  serverQueries = [];
-  //Separate queries for each tablet
-  tabletsKeys.forEach((tabletKeys) => {
-    if (tabletKeys.length != 0) {
-      tempQuery = Object.assign({}, op);
-      tempQuery.row_key = tabletKeys;
-      serverQueries.push(tempQuery);
-    }
-  });
+  serverQueries= initQuery(op);
   //Send each query to it's target server
   promises=[]
   serverQueries.forEach((q, index) => {
@@ -131,3 +114,35 @@ const handleDeleteCellsRequest = (op) => {
   });
   Promise.all(promises);
 };
+
+
+const handleSetRequest = (op) => {
+  serverQueries= initQuery(op);
+  //Send each query to it's target server
+  promises=[]
+  serverQueries.forEach((q, index) => {
+    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
+    promises.push(new Promise((resolve) => {
+      tabletSocket.emit("set", q, (res) => {
+        message = (index + 1 == 1) ? "Result from tablet server 1":"Result from tablet server 2";
+        console.log(message,res);
+        resolve(res);
+      });
+    }));
+  });
+  Promise.all(promises);
+};
+
+const initQuery = (op)=>{
+  tabletsKeys = targetServers([op.row_key]);
+  serverQueries = [];
+  //Separate queries for each tablet
+  tabletsKeys.forEach((tabletKeys) => {
+    if (tabletKeys.length != 0) {
+      tempQuery = Object.assign({}, op);
+      tempQuery.row_key = tabletKeys;
+      serverQueries.push(tempQuery);
+    }
+  });
+  return serverQueries;
+}

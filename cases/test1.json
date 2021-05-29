@@ -3,7 +3,7 @@
         {
             "type":"Set",
             "row_key":1000,
-            "columns":{"user_screen_name":"shoma"}
+            "columns_data":{"user_screen_name":"shoma","indegree":300}
         },
         {
             "type":"Read",
