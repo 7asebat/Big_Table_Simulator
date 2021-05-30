@@ -12,6 +12,7 @@ setInterval(function () {
   if (updatedData.length || deletedData.length) {
     socket.emit("periodic_update", updatedData, deletedData);
     updatedData = [];
+    deletedData=[];
   }
 }, 60 * 1000); // 60 * 1000 milsec
 
