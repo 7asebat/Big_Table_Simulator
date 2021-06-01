@@ -8,8 +8,8 @@ let tablets = partitionData(bigTable,MAX_TABLET_SIZE);
 let metadata = generateMetadata(tablets,MAX_TABLET_SIZE,bigTable.length);
 const {binarySearch} = require("./../utils/binarySearch");
 
-let clientConnections = []
-let tabletConnections = []
+let clientConnections = [];
+let tabletConnections = [];
 
 //Handling socket connections between services
 io.on("connection", socket => {
@@ -20,12 +20,13 @@ io.on("connection", socket => {
             io.to(socket.id).emit("metadata",metadata);
         }
         else if(data.type == "tablet"){
-            tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1});
-            tabletsIds = metadata[tabletConnections.length-1].tablets_range;
+            console.log(metadata);
+            tabletsIds = metadata[tabletConnections.length].tablets_range;
+            console.log(tabletsIds);
+            tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1,"data_count":tabletsIds[1]-tabletsIds[0]+1});
             start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
             end = Math.floor(tabletsIds[1]/MAX_TABLET_SIZE)+1; 
-            console.log(start,end,tabletsIds)
-            io.to(socket.id).emit("tablets",tablets.slice(start,end));
+            io.to(socket.id).emit("data",tablets.slice(start,end));
         }
 
         console.log({clientConnections,tabletConnections});
@@ -37,9 +38,11 @@ io.on("connection", socket => {
         console.log({clientConnections,tabletConnections});
     });
 
-    socket.on("periodic_update",(updatedData,deletedData)=>{
+    socket.on("periodic_update",(updatedData,deletedData,dataCount)=>{
         updatedElements=[];
         deletedElements=[];
+        tabletId = tabletConnections[0].socket_id == socket.id ? 1:2;
+        tabletConnections[tabletId-1].data_count = dataCount;
         updatedData.forEach(el=>{
             let{data,index} = binarySearch(bigTable,el.user_id,0,bigTable.length-1);
             if (index != -1){
@@ -54,11 +57,39 @@ io.on("connection", socket => {
                 deletedElements.push(deletedEl);
             }
         });
-        socketName = tabletConnections[0].socket_id == socket.id ? "Tablet 1":"Tablet 2";
-        console.log(`Server ${socketName} periodically updated elements: `,updatedElements);
-        console.log(`Server ${socketName} periodically deleted elements: `,deletedElements);
+        console.log(`Server ${tabletId} periodically updated elements: `,updatedElements);
+        console.log(`Server ${tabletId} periodically deleted elements: `,deletedElements);
 
+        t1DataCount = tabletConnections[0].data_count;
+        t2DataCount = tabletConnections[1].data_count;
+        if(checkAndReassign(t1DataCount,t2DataCount)){
+            console.log("Reassigning");
+            handleRepartition();
+        }
     });
+
+    //Checks partitioning
+    const checkAndReassign = (t1DataCount,t2DataCount)=>{
+        const reassigningFactor = 1/3 * tablets.length;
+        if(Math.abs(t1DataCount-t2DataCount) >= reassigningFactor * MAX_TABLET_SIZE){
+            tablets = partitionData(bigTable,MAX_TABLET_SIZE);
+            metadata = generateMetadata(tablets,MAX_TABLET_SIZE,bigTable.length);
+            return true;
+        }
+        return false;
+    };
+    
+    //Sends data and metadata to tablets and clients
+    const handleRepartition = ()=>{
+        tabletConnections.forEach((connection,index)=>{
+            socketId = connection.socket_id;
+            tabletsIds = metadata[index].tablets_range;
+            start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
+            end = Math.floor(tabletsIds[1]/MAX_TABLET_SIZE)+1;
+            io.to(socketId).emit("partition",tablets.slice(start,end));
+        });
+        io.to("client").emit("partition",metadata);
+    }
 });
 
 

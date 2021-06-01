@@ -3,14 +3,32 @@ const TABLET_PORT = process.argv[2];
 let socket = require("socket.io-client")(`http://localhost:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
 const { binarySearch } = require("./../utils/binarySearch");
-
-//Holds data ids to be updated periodically
+const count2d = require("./../utils/countArr");
+let tablets = [];
+//Holds data to be updated periodically
 let updatedData = [];
 let deletedData = [];
+
+//Determine currently used table
+let lockedTabletId = -1;
+
+const acquireLock = (tabletId)=>{
+  console.log("Acquiring lock");
+  while(lockedTabletId!=-1);
+  console.log("Acquired Lock");
+  lockedTabletId = tabletId;
+}
+
+const releaseLock = ()=>{
+  lockedTabletId = -1;
+}
+
 //Send an event to master server to update main table
 setInterval(function () {
   if (updatedData.length || deletedData.length) {
-    socket.emit("periodic_update", updatedData, deletedData);
+    dataCount = count2d(tablets);
+    console.log("Current data count = ",dataCount);
+    socket.emit("periodic_update", updatedData, deletedData,dataCount);
     updatedData = [];
   }
 }, 60 * 1000); // 60 * 1000 milsec
@@ -31,8 +49,14 @@ socket.on("connect", () => {
   socket.send({ type: "tablet" });
 });
 
-socket.on("tablets", (data) => {
+socket.on("partition", (data) => {
+  console.log("Received partition data");
   tablets = data;
+});
+
+socket.on("data",(data)=>{
+  tablets = data;
+  console.log("Received initial data", data);
 });
 
 io.on("connection", (socket) => {
@@ -98,6 +122,7 @@ const requestHandler = (type, q) => {
       );
       switch (type) {
         case "Set":
+          acquireLock(tablet_id);
           if (index == -1)
             results.push(`row with user_id = ${key} wasn't found`);
           else {
@@ -107,9 +132,11 @@ const requestHandler = (type, q) => {
             if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
             results.push(data);
           }
+          releaseLock();
           break;
 
         case "DeleteCells":
+          acquireLock(tablet_id);
           if (index == -1)
             results.push(`row with user_id = ${key} wasn't found`);
           else {
@@ -119,6 +146,7 @@ const requestHandler = (type, q) => {
             if (!existsInUpdatedData(data.user_id)) updatedData.push(data);
             results.push(data);
           }
+          releaseLock();
           break;
 
         case "Read":
@@ -128,6 +156,7 @@ const requestHandler = (type, q) => {
           break;
 
         case "DeleteRow":
+          acquireLock(tablet_id);
           if (index == -1)
             results.push(`row with user_id = ${key} wasn't found`);
           else {
@@ -136,6 +165,7 @@ const requestHandler = (type, q) => {
             results.push(`Entry with key = ${key} is deleted successfully`);
             deletedData.push(data);
           }
+          releaseLock();
           break;
       }
     }
