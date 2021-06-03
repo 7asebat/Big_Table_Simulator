@@ -9,9 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
     "socket.io": "^4.1.2",
-    "socket.io-client": "^4.1.2",
-    "zeromq": "^5.2.8"
+    "socket.io-client": "^4.1.2"
   }
 }

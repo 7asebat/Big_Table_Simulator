@@ -45,6 +45,12 @@ const targetServers = (keys) => {
 (async () => {
   await init();
   console.log("connected successfully");
+
+  masterSocket.on("partition", (data) => {
+    console.log("Received new metadata");
+    metadata = data;
+  });
+  
   queries.forEach((query) => {
     switch (query.type) {
       case "Set":
@@ -54,7 +60,6 @@ const targetServers = (keys) => {
 
       case "DeleteRow":
         //Handle Delete row queries
-        console.log("HERE");
         handleDeleteRowRequest(query);
         break;
 
@@ -121,6 +126,7 @@ const initQuery = (query) => {
 };
 
 const globalHandler = (type, query) => {
+  console.log("Sending query of type = ",type, "Query is: ",query);
   serverQueries = initQuery(query);
   promises = [];
   serverQueries.forEach((q, index) => {
