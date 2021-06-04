@@ -25,7 +25,8 @@ io.on("connection", socket => {
             console.log(tabletsIds);
             tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1,"data_count":tabletsIds[1]-tabletsIds[0]+1});
             start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
-            end = Math.floor(tabletsIds[1]/MAX_TABLET_SIZE)+1; 
+            end = Math.ceil(tabletsIds[1]/MAX_TABLET_SIZE); 
+            console.log("START ", start," END", end);
             io.to(socket.id).emit("data",tablets.slice(start,end));
         }
 
@@ -69,9 +70,9 @@ io.on("connection", socket => {
             bigTable.push(el);
             addedElements.push(el);
         })
-        console.log(`Server ${tabletId} periodically updated elements: `,updatedElements);
-        console.log(`Server ${tabletId} periodically deleted elements: `,deletedElements);
-        console.log(`Server ${tabletId} periodically added elements: `,addedElements);
+        // console.log(`Server ${tabletId} periodically updated elements: `,updatedElements);
+        // console.log(`Server ${tabletId} periodically deleted elements: `,deletedElements);
+        // console.log(`Server ${tabletId} periodically added elements: `,addedElements);
 
         t1DataCount = tabletConnections[0].data_count;
         t2DataCount = tabletConnections[1].data_count;
@@ -87,6 +88,7 @@ io.on("connection", socket => {
         if(Math.abs(t1DataCount-t2DataCount) >= reassigningFactor * MAX_TABLET_SIZE){
             tablets = partitionData(bigTable,MAX_TABLET_SIZE);
             metadata = generateMetadata(tablets,MAX_TABLET_SIZE,bigTable.length);
+            console.log(bigTable.length,tablets.length,metadata);
             return true;
         }
         return false;
@@ -98,7 +100,8 @@ io.on("connection", socket => {
             socketId = connection.socket_id;
             tabletsIds = metadata[index].tablets_range;
             start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
-            end = Math.floor(tabletsIds[1]/MAX_TABLET_SIZE)+1;
+            end = Math.ceil(tabletsIds[1]/MAX_TABLET_SIZE);
+            console.log("START ", start," END", end);
             io.to(socketId).emit("partition",tablets.slice(start,end));
         });
         io.to("client").emit("partition",metadata);

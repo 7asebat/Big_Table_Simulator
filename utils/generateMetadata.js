@@ -9,18 +9,12 @@
 module.exports = (tablets,MAX_TABLET_SIZE,usersLength)=>{
     const division = Math.floor(tablets.length/2);
     let ids_1=[], ids_2=[]
-    for(let i=0;i<tablets.length;i++){
-        if(i<division)
-            ids_1.push(i);
-        else
-            ids_2.push(i);
-    }
     return [{
         "tablets_count":division,
-        "tablets_range":[1,Math.floor(usersLength/2)]
+        "tablets_range":[1,division*MAX_TABLET_SIZE]
     },
     {
         "tablets_count":tablets.length-division,
-        "tablets_range":[Math.floor(usersLength/2+1),usersLength]
+        "tablets_range":[(division*MAX_TABLET_SIZE)+1,(tablets.length)* MAX_TABLET_SIZE]
     }]
 }
