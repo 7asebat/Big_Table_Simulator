@@ -47,7 +47,7 @@ const targetServers = (keys) => {
   console.log("connected successfully");
 
   masterSocket.on("partition", (data) => {
-    console.log("Received new metadata");
+    console.log("Received new metadata",data);
     metadata = data;
   });
 
@@ -117,7 +117,6 @@ const handleDeleteRowRequest = (query) => {
 };
 
 const initQuery = (query) => {
-  console.log(query);
   tablet1Queries = {};
   tablet2Queries = {};
   if (query.type == "AddRow") {
@@ -147,12 +146,10 @@ const initQuery = (query) => {
 const globalHandler = (type, query) => {
   // console.log("Sending query of type = ", type, "Query is: ", query);
   serverQueries = initQuery(query);
-  console.log(serverQueries);
   promises = [];
   serverQueries.forEach((q, index) => {
     if (!isEmptyObject(q)) {
       const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-      console.log("SENDING QUERY ", q, "TO TABLET", index + 1);
       promises.push(
         new Promise((resolve) => {
           tabletSocket.emit(`${type}`, q, (res) => {

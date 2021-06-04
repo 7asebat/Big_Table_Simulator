@@ -45,9 +45,10 @@ io.on("connection", socket => {
         io.to("client").emit("metadata",metadata);
     });
 
-    socket.on("periodic_update",(updatedData,deletedData,dataCount)=>{
+    socket.on("periodic_update",(addedData,updatedData,deletedData,dataCount)=>{
         updatedElements=[];
         deletedElements=[];
+        addedElements=[];
         tabletId = tabletConnections[0].socket_id == socket.id ? 1:2;
         tabletConnections[tabletId-1].data_count = dataCount;
         updatedData.forEach(el=>{
@@ -64,8 +65,13 @@ io.on("connection", socket => {
                 deletedElements.push(deletedEl);
             }
         });
+        addedData.forEach(el=>{
+            bigTable.push(el);
+            addedElements.push(el);
+        })
         console.log(`Server ${tabletId} periodically updated elements: `,updatedElements);
         console.log(`Server ${tabletId} periodically deleted elements: `,deletedElements);
+        console.log(`Server ${tabletId} periodically added elements: `,addedElements);
 
         t1DataCount = tabletConnections[0].data_count;
         t2DataCount = tabletConnections[1].data_count;

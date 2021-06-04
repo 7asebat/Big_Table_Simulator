@@ -44,15 +44,17 @@ let lock = new Mutex();
 //Holds data to be updated periodically
 let updatedData = [];
 let deletedData = [];
+let addedData = [];
 let dataCount = 0;
 
 //Send an event to master server to update main table
 setInterval(function () {
-  if (updatedData.length || deletedData.length) {
+  if (updatedData.length || deletedData.length || addedData.length) {
     console.log("Current data count = ", dataCount);
-    socket.emit("periodic_update", updatedData, deletedData, dataCount);
+    socket.emit("periodic_update", addedData,updatedData, deletedData, dataCount);
     updatedData = [];
     deletedData = [];
+    addedData = [];
   }
 }, 60 * 1000); // 60 * 1000 milsec
 
@@ -68,25 +70,24 @@ socket.on("connect", () => {
   socket.send({ type: "tablet" });
 });
 
-socket.on("partition", (data) => {
+socket.on("partition", async (data) => {
   console.log("Received partition data");
   tablets = data;
   dataCount = count2d(tablets);
-  models.forEach(async (md) => {
-    await mongoose.connection.db.dropCollection(`${md}`);
-  });
+  for(let i=0;i<models.length;i++){
+    await mongoose.connection.db.dropCollection(`${i}`);
+  }
   models = [];
   tablets.forEach((tb, index) => {
     var model = mongoose.model(`${index}`, schema);
     models.push(model);
-    model.collection.insertMany(tb, (err, docs) => {
+    model.collection.insertMany(tb, (err) => {
       if (err) {
         console.log(err);
-      } else {
-        console.log("Data inserted successfully");
       }
     });
   });
+  console.log("Data partitioned successfully");
 });
 
 socket.on("data", (data) => {
@@ -230,7 +231,9 @@ const requestHandler = async (type, q) => {
                   await newModel.create(newDoc);
                   socket.emit("range_update", models.length,newDoc["user_id"]);
               }
+              addedData.push(newDoc);
               results.push(newDoc);
+              console.log(dataCount);
             });
 
           break;
