@@ -1,7 +1,7 @@
 const MASTER_PORT = 3000;
 const TABLET_PORT = process.argv[2];
 const DATABASENAME = process.argv[3];
-const MAX_TABLET_SIZE = 1000;
+let MAX_TABLET_SIZE = 200;
 const DATABASE = "mongodb://127.0.0.1:27017/" + DATABASENAME;
 let socket = require("socket.io-client")(`http://localhost:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
@@ -51,7 +51,7 @@ let dataCount = 0;
 setInterval(function () {
   if (updatedData.length || deletedData.length || addedData.length) {
     console.log("Current data count = ", dataCount);
-    socket.emit("periodic_update", addedData,updatedData, deletedData, dataCount);
+    socket.emit("periodic_update", addedData,updatedData, deletedData, models.length);
     updatedData = [];
     deletedData = [];
     addedData = [];
@@ -90,8 +90,9 @@ socket.on("partition", async (data) => {
   console.log("Data partitioned successfully");
 });
 
-socket.on("data", (data) => {
+socket.on("data", (data,TABLET_SIZE) => {
   tablets = data;
+  MAX_TABLET_SIZE = TABLET_SIZE;
   dataCount = count2d(tablets);
   tablets.forEach((tb, index) => {
     var model = mongoose.model(`${index}`, schema);

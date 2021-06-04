@@ -20,14 +20,11 @@ io.on("connection", socket => {
             io.to(socket.id).emit("metadata",metadata);
         }
         else if(data.type == "tablet"){
-            console.log(metadata);
             tabletsIds = metadata[tabletConnections.length].tablets_range;
-            console.log(tabletsIds);
             tabletConnections.push({"socket_id":socket.id,"tablet_number":tabletConnections.length+1,"data_count":tabletsIds[1]-tabletsIds[0]+1});
             start = Math.floor(tabletsIds[0]/MAX_TABLET_SIZE);
             end = Math.ceil(tabletsIds[1]/MAX_TABLET_SIZE); 
-            console.log("START ", start," END", end);
-            io.to(socket.id).emit("data",tablets.slice(start,end));
+            io.to(socket.id).emit("data",tablets.slice(start,end),MAX_TABLET_SIZE);
         }
 
         console.log({clientConnections,tabletConnections});
