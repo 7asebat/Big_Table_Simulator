@@ -1,12 +1,12 @@
 const MASTER_PORT = 3000;
 const TABLET_PORT = process.argv[2];
 const DATABASENAME = process.argv[3];
+const MAX_TABLET_SIZE = 1000;
 const DATABASE = "mongodb://127.0.0.1:27017/" + DATABASENAME;
 let socket = require("socket.io-client")(`http://localhost:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
-const { binarySearch } = require("./../utils/binarySearch");
 const count2d = require("./../utils/countArr");
-const { dropDB } = require("./../utils/dropDb");
+var Mutex = require('async-mutex').Mutex;
 
 const schema = require("./../models/tabletSchema");
 let models = [];
@@ -40,6 +40,7 @@ process.on("SIGINT", async () => {
 });
 
 let tablets = [];
+let lock = new Mutex();
 //Holds data to be updated periodically
 let updatedData = [];
 let deletedData = [];
@@ -149,6 +150,16 @@ io.on("connection", (socket) => {
     results = await requestHandler("Set", q);
     cb(results);
   });
+
+  socket.on("add_row", async (q, cb) => {
+    console.log(
+      "Received add row request from client with socket id = ",
+      socket.id
+    );
+    console.log(q);
+    results = await requestHandler("AddRow", q);
+    cb(results);
+  });
 });
 
 const existsInUpdatedData = (id) => {
@@ -157,20 +168,22 @@ const existsInUpdatedData = (id) => {
 };
 
 const requestHandler = async (type, q) => {
-  results = [];
-  q.row_key.forEach(async (key) => {
+  let results = [];
+  for (const key of q.row_key){
     tabletModel = getTabletModel(key);
-    console.log("MODEL ", tabletModel);
 
     if (tabletModel == -1)
       results.push(`row with user_id = ${key} wasn't found`);
     else {
-      let result = await tabletModel.findOne({ user_id: key });
+      let result = {};
+      if(q.type !== "AddRow"){
+        result = await tabletModel.findOne({ user_id: key });
+      }
 
       if (!result) results.push(`row with user_id = ${key} wasn't found`);
 
       else {
-        resultObj = result.toObject();
+        resultObj = result;
         switch (type) {
           case "Set":
             Object.entries(q.columns_data).forEach(([key, value]) => {
@@ -195,16 +208,43 @@ const requestHandler = async (type, q) => {
           case "Read":
             results.push(resultObj);
             break;
+          
+          case "AddRow":
+            let newDoc = {};
+            Object.entries(q.columns_data).forEach(([key, value]) => {
+              newDoc[`${key}`] = value;
+            });
+
+            await lock.runExclusive(async () => {
+              let lastModel = models[models.length-1]["model"];
+              let count = await lastModel.countDocuments({});
+              let lastUser = await (lastModel.find({}).sort({_id:-1}).limit(1));
+              console.log(lastUser);
+              newDoc["user_id"]=lastUser[0].user_id + 1;
+              dataCount+=1;
+              if(count<MAX_TABLET_SIZE){
+                  await lastModel.create(newDoc);
+              }else{
+                  let newModel = mongoose.model(`${models.length}`,schema);
+                  models.push({model:newModel,start:newDoc["user_id"],end:newDoc["user_id"]+MAX_TABLET_SIZE-1});
+                  await newModel.create(newDoc);
+                  socket.emit("range_update", models.length,newDoc["user_id"]);
+              }
+              results.push(newDoc);
+            });
+
+          break;
 
           case "DeleteRow":
             deletedEl = resultObj;
             await tabletModel.deleteOne({ user_id: key });
             results.push(`Entry with key = ${key} is deleted successfully`);
             deletedData.push(deletedEl);
+            dataCount -=1;
             break;
         }
       }
     }
-  });
+  };
   return results;
 };

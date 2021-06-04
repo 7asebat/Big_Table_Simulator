@@ -38,6 +38,13 @@ io.on("connection", socket => {
         console.log({clientConnections,tabletConnections});
     });
 
+    socket.on("range_update",(tabletsCount,range)=>{
+        console.log("metadata range update");
+        metadata[1].tablets_range[1] = range+MAX_TABLET_SIZE-1;
+        metadata[1].tablets_count = tabletsCount;
+        io.to("client").emit("metadata",metadata);
+    });
+
     socket.on("periodic_update",(updatedData,deletedData,dataCount)=>{
         updatedElements=[];
         deletedElements=[];

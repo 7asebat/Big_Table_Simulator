@@ -50,7 +50,7 @@ const targetServers = (keys) => {
     console.log("Received new metadata");
     metadata = data;
   });
-  
+
   queries.forEach((query) => {
     switch (query.type) {
       case "Set":
@@ -68,8 +68,9 @@ const targetServers = (keys) => {
         handleDeleteCellsRequest(query);
         break;
 
-      case "Add":
+      case "AddRow":
         //Handle Add queries
+        handleAddRequest(query);
         break;
 
       case "Read":
@@ -103,6 +104,12 @@ const handleSetRequest = (query) => {
   Promise.all(promises);
 };
 
+const handleAddRequest = (query) => {
+  //Send each query to it's target server
+  promises = globalHandler("add_row", query);
+  Promise.all(promises);
+};
+
 const handleDeleteRowRequest = (query) => {
   //Send each query to it's target server
   promises = globalHandler("delete_row", query);
@@ -111,38 +118,58 @@ const handleDeleteRowRequest = (query) => {
 
 const initQuery = (query) => {
   console.log(query);
-  tabletsKeys =
-    (query.type == "Read" || query.type == "DeleteRow") ? targetServers(query.row_key) : targetServers([query.row_key]);
-  serverQueries = [];
-  //Separate queries for each tablet
-  tabletsKeys.forEach((tabletKeys) => {
-    if (tabletKeys.length != 0) {
-      tempQuery = Object.assign({}, query);
-      tempQuery.row_key = tabletKeys;
-      serverQueries.push(tempQuery);
-    }
-  });
-  return serverQueries;
+  tablet1Queries = {};
+  tablet2Queries = {};
+  if (query.type == "AddRow") {
+    let tempQuery = Object.assign({}, query);
+    tempQuery.row_key = [query.row_key];
+    Object.assign(tablet2Queries, tempQuery);
+  } else {
+    tabletsKeys =
+      query.type == "Read" || query.type == "DeleteRow"
+        ? targetServers(query.row_key)
+        : targetServers([query.row_key]);
+
+    //Separate queries for each tablet
+    tabletsKeys.forEach((tabletKeys, index) => {
+      if (tabletKeys.length != 0) {
+        tempQuery = Object.assign({}, query);
+        tempQuery.row_key = tabletKeys;
+        index == 0
+          ? Object.assign(tablet1Queries, tempQuery)
+          : Object.assign(tablet2Queries, tempQuery);
+      }
+    });
+  }
+  return [tablet1Queries, tablet2Queries];
 };
 
 const globalHandler = (type, query) => {
-  console.log("Sending query of type = ",type, "Query is: ",query);
+  // console.log("Sending query of type = ", type, "Query is: ", query);
   serverQueries = initQuery(query);
+  console.log(serverQueries);
   promises = [];
   serverQueries.forEach((q, index) => {
-    const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
-    promises.push(
-      new Promise((resolve) => {
-        tabletSocket.emit(`${type}`, q, (res) => {
-          message =
-            index + 1 == 1
-              ? "Result from tablet server 1"
-              : "Result from tablet server 2";
-          console.log(message, res);
-          resolve(res);
-        });
-      })
-    );
+    if (!isEmptyObject(q)) {
+      const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
+      console.log("SENDING QUERY ", q, "TO TABLET", index + 1);
+      promises.push(
+        new Promise((resolve) => {
+          tabletSocket.emit(`${type}`, q, (res) => {
+            message =
+              index + 1 == 1
+                ? "Result from tablet server 1"
+                : "Result from tablet server 2";
+            // console.log(message, res);
+            resolve(res);
+          });
+        })
+      );
+    }
   });
   return promises;
 };
+
+function isEmptyObject(obj) {
+  return !Object.keys(obj).length;
+}
