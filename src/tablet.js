@@ -7,11 +7,15 @@ let socket = require("socket.io-client")(`http://localhost:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
 const count2d = require("./../utils/countArr");
 var Mutex = require('async-mutex').Mutex;
-
 const schema = require("./../models/tabletSchema");
+const mongoose = require("mongoose");
+const fs = require('fs');
+
+let logFile = `./../logs/tablet${TABLET_PORT}Log.txt`;
+fs.writeFileSync(logFile,"BEGIN LOGS\n");
+
 let models = [];
 //DB connection
-const mongoose = require("mongoose");
 const connectToDB = async () => {
   mongoose
     .connect(DATABASE, {
@@ -50,7 +54,7 @@ let dataCount = 0;
 //Send an event to master server to update main table
 setInterval(function () {
   if (updatedData.length || deletedData.length || addedData.length) {
-    console.log("Current data count = ", dataCount);
+    fs.appendFileSync(logFile,"Periodic update event to master\n");
     socket.emit("periodic_update", addedData,updatedData, deletedData, models.length);
     updatedData = [];
     deletedData = [];
@@ -72,6 +76,8 @@ socket.on("connect", () => {
 
 socket.on("partition", async (data) => {
   console.log("Received partition data");
+  fs.appendFileSync(logFile,"Received partition data\n");
+
   tablets = data;
   dataCount = count2d(tablets);
   for(let i=0;i<models.length;i++){
@@ -87,6 +93,7 @@ socket.on("partition", async (data) => {
       }
     });
   });
+  fs.appendFileSync(logFile,"Data partitioned successfully\n");
   console.log("Data partitioned successfully");
 });
 
@@ -107,12 +114,12 @@ socket.on("data", (data,TABLET_SIZE) => {
       }
     });
   });
+  fs.appendFileSync(logFile,"Received initial data\n");
   console.log(models);
 });
 
 io.on("connection", (socket) => {
   console.log("Client connected ", socket.id);
-
   socket.on("read", async (q, cb) => {
     console.log(
       "Received read request from client with socket id = ",
@@ -250,5 +257,6 @@ const requestHandler = async (type, q) => {
       }
     }
   };
+  fs.appendFileSync(logFile,`Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(results)}`);
   return results;
 };
