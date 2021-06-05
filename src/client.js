@@ -12,8 +12,14 @@ let tablet2Socket = require("socket.io-client")(
   `http://localhost:${TABLET2_PORT}`
 );
 
-let queries = require("./../cases/test1.json");
+let queries = require("./../cases/test2.json");
+const fs = require('fs');
 let metadata = [];
+
+let logFile = "./../logs/clientLogs.txt";
+
+fs.writeFileSync(logFile,"BEGIN LOGS\n");
+
 
 const init = async () => {
   const connections = [masterSocket, tablet1Socket, tablet2Socket];
@@ -44,10 +50,11 @@ const targetServers = (keys) => {
 
 (async () => {
   await init();
-  console.log("connected successfully");
-
+  fs.appendFileSync(logFile,`Connected to master and the 2 tablet servers\n`);
+  
   masterSocket.on("partition", (data) => {
     console.log("Received new metadata",data);
+    fs.appendFileSync(logFile,`Received new metadata\n ${JSON.stringify(data)}\n`);
     metadata = data;
   });
 
@@ -55,26 +62,31 @@ const targetServers = (keys) => {
     switch (query.type) {
       case "Set":
         //Handle set queries
+        // fs.appendFileSync(logFile,`Received Set Query\n ${JSON.stringify(query)}\n`);
         handleSetRequest(query);
         break;
 
       case "DeleteRow":
         //Handle Delete row queries
+        // fs.appendFileSync(logFile,`Received Delete Row Query\n ${JSON.stringify(query)}\n`);
         handleDeleteRowRequest(query);
         break;
 
       case "DeleteCells":
         //Handle Delete cells queries
+        // fs.appendFileSync(logFile,`Received Delete Cells Query\n ${JSON.stringify(query)}\n`);
         handleDeleteCellsRequest(query);
         break;
 
       case "AddRow":
         //Handle Add queries
+        // fs.appendFileSync(logFile,`Received Add Row Query\n ${JSON.stringify(query)}\n`);
         handleAddRequest(query);
         break;
 
       case "Read":
         //Handle Read queries
+        // fs.appendFileSync(logFile,`Received Read Query\n ${JSON.stringify(query)}\n`);
         handleReadRequest(query);
         break;
     }
@@ -82,6 +94,7 @@ const targetServers = (keys) => {
 })();
 
 masterSocket.on("metadata", (data) => {
+  fs.appendFileSync(logFile,`Received metadata\n ${JSON.stringify(data)}\n`);
   metadata = data;
   console.log("Received metadata from master\n", metadata);
 });
@@ -158,6 +171,8 @@ const globalHandler = (type, query) => {
                 ? "Result from tablet server 1"
                 : "Result from tablet server 2";
             // console.log(message, res);
+            fs.appendFileSync(logFile,`Sending Query\n ${JSON.stringify(q)}\n`);
+            fs.appendFileSync(logFile,`${message}\n ${JSON.stringify(res)}\n`);
             resolve(res);
           });
         })
