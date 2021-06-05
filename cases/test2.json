@@ -1,0 +1,32 @@
+[
+  {
+    "type": "Read",
+    "row_key": [1000, 2000, 3000, 5001,6000,7000],
+    "columns": {}
+  },
+  {
+    "type": "Set",
+    "row_key": 1000,
+    "columns_data": { "user_screen_name": "shoma", "indegree": 300 }
+  },
+  {
+    "type": "DeleteRow",
+    "row_key": [1000, 2000, 3000, 6000,7000],
+    "columns": {}
+  },
+  {
+    "type": "AddRow",
+    "row_key": 2000,
+    "columns_data": { "user_screen_name": "Michael", "indegree": 300 }
+  },
+  {
+    "type": "AddRow",
+    "row_key": 200,
+    "columns_data": { "user_screen_name": "Mohamed", "indegree": 350 }
+  },
+  {
+    "type": "Read",
+    "row_key": [10000,10001],
+    "columns": {}
+  }
+]

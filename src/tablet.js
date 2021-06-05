@@ -55,7 +55,7 @@ let dataCount = 0;
 setInterval(function () {
   if (updatedData.length || deletedData.length || addedData.length) {
     fs.appendFileSync(logFile,"Periodic update event to master\n");
-    socket.emit("periodic_update", addedData,updatedData, deletedData, models.length);
+    socket.emit("periodic_update", addedData,updatedData, deletedData, dataCount);
     updatedData = [];
     deletedData = [];
     addedData = [];
@@ -65,9 +65,9 @@ setInterval(function () {
 const getTabletModel = (row_key) => {
   let tabletModel = -1;
   models.forEach((model) => {
-    if (model.start <= row_key && model.end >= row_key) tabletModel = model;
+    if (model.start <= row_key && model.end >= row_key) tabletModel = model.model;
   });
-  return tabletModel.model;
+  return tabletModel;
 };
 
 socket.on("connect", () => {
@@ -106,7 +106,7 @@ socket.on("data", (data,TABLET_SIZE) => {
     models.push({
       model: model,
       start: tb[0].user_id,
-      end: tb[tb.length - 1].user_id,
+      end: tb[0].user_id+MAX_TABLET_SIZE-1,
     });
     model.collection.insertMany(tb, (err, docs) => {
       if (err) {
@@ -115,57 +115,31 @@ socket.on("data", (data,TABLET_SIZE) => {
     });
   });
   fs.appendFileSync(logFile,"Received initial data\n");
-  console.log(models);
 });
 
 io.on("connection", (socket) => {
   console.log("Client connected ", socket.id);
   socket.on("read", async (q, cb) => {
-    console.log(
-      "Received read request from client with socket id = ",
-      socket.id
-    );
-    console.log(q);
     results = await requestHandler("Read", q);
     cb(results);
   });
 
   socket.on("delete_cells", async (q, cb) => {
-    console.log(
-      "Received delete cells request from client with socket id = ",
-      socket.id
-    );
-    console.log(q);
     results = await requestHandler("DeleteCells", q);
     cb(results);
   });
 
   socket.on("delete_row", async (q, cb) => {
-    console.log(
-      "Received delete row request from client with socket id = ",
-      socket.id
-    );
-    console.log(q);
     results = await requestHandler("DeleteRow", q);
     cb(results);
   });
 
   socket.on("set", async (q, cb) => {
-    console.log(
-      "Received set request from client with socket id = ",
-      socket.id
-    );
-    console.log(q);
     results = await requestHandler("Set", q);
     cb(results);
   });
 
   socket.on("add_row", async (q, cb) => {
-    console.log(
-      "Received add row request from client with socket id = ",
-      socket.id
-    );
-    console.log(q);
     results = await requestHandler("AddRow", q);
     cb(results);
   });
@@ -179,9 +153,8 @@ const existsInUpdatedData = (id) => {
 const requestHandler = async (type, q) => {
   let results = [];
   for (const key of q.row_key){
-    tabletModel = getTabletModel(key);
-
-    if (tabletModel == -1)
+    let tabletModel = getTabletModel(key);
+    if (tabletModel == -1 && type !== "AddRow")
       results.push(`row with user_id = ${key} wasn't found`);
     else {
       let result = {};
@@ -227,8 +200,7 @@ const requestHandler = async (type, q) => {
             await lock.runExclusive(async () => {
               let lastModel = models[models.length-1]["model"];
               let count = await lastModel.countDocuments({});
-              let lastUser = await (lastModel.find({}).sort({_id:-1}).limit(1));
-              console.log(lastUser);
+              let lastUser = await (lastModel.find({}).sort({user_id:-1}).limit(1));
               newDoc["user_id"]=lastUser[0].user_id + 1;
               dataCount+=1;
               if(count<MAX_TABLET_SIZE){
@@ -241,7 +213,6 @@ const requestHandler = async (type, q) => {
               }
               addedData.push(newDoc);
               results.push(newDoc);
-              console.log(dataCount);
             });
 
           break;
@@ -257,6 +228,6 @@ const requestHandler = async (type, q) => {
       }
     }
   };
-  fs.appendFileSync(logFile,`Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(results)}`);
+  fs.appendFileSync(logFile,`Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(results)}\ntimeStamp= ${new Date().getTime()}\n`);
   return results;
 };
