@@ -4,6 +4,9 @@ const TABLET2_PORT = 51236;
 const MASTER_IP = process.argv[2];
 const TABLET1_IP = process.argv[3];
 const TABLET2_IP = process.argv[4];
+const testCase = process.argv[5];
+const sleepTime = process.argv[6];
+
 const logEvent = require("../utils/logEvent");
 const checkAndDelete = require("../utils/checkFileExist");
 let masterSocket = require("socket.io-client")(
@@ -16,8 +19,7 @@ let tablet2Socket = require("socket.io-client")(
   `http://${TABLET2_IP}:${TABLET2_PORT}`
 );
 
-let queries = require("./../cases/test1.json");
-const fs = require("fs");
+let queries = require(`./../cases/${testCase}.json`);
 let metadata = [];
 
 let logFile = "./../logs/clientLogs.log";
@@ -101,7 +103,7 @@ const targetServers = (keys) => {
           handleReadRequest(query);
           break;
       }
-    }, index * 1000);
+    }, index * sleepTime);
   });
 })();
 

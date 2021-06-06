@@ -10,7 +10,6 @@ const count2d = require("./../utils/countArr");
 var Mutex = require("async-mutex").Mutex;
 const schema = require("./../models/tabletSchema");
 const mongoose = require("mongoose");
-const fs = require("fs");
 const logEvent = require("../utils/logEvent");
 const checkAndDelete = require("../utils/checkFileExist");
 
@@ -90,7 +89,7 @@ const getTabletModel = (row_key) => {
 };
 
 socket.on("connect", () => {
-  socket.send({ type: "tablet" });
+  socket.send({ type: "tablet", port: TABLET_PORT });
 });
 
 socket.on("partition", async (data) => {

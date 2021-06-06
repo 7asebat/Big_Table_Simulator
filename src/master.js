@@ -2,7 +2,6 @@ const MAX_TABLET_SIZE = 1000;
 const bigTable = require("./../assets/users.json");
 const partitionData = require("./../utils/partitionData.js");
 const generateMetadata = require("./../utils/generateMetadata.js");
-const fs = require("fs");
 const PORT = 51234;
 const io = require("socket.io")(PORT);
 let tablets = partitionData(bigTable, MAX_TABLET_SIZE);
@@ -21,7 +20,6 @@ logEvent({
 
 let clientConnections = [];
 let tabletConnections = [];
-
 //Handling socket connections between services
 io.on("connection", (socket) => {
   socket.on("message", (data) => {
@@ -38,7 +36,8 @@ io.on("connection", (socket) => {
         body: `Client with socket id = ${socket.id} has connected`,
       });
     } else if (data.type == "tablet") {
-      tabletsIds = metadata[tabletConnections.length].tablets_range;
+      let metaDataIndex = data.port == "51235" ? 0 : 1;
+      tabletsIds = metadata[metaDataIndex].tablets_range;
       tabletConnections.push({
         socket_id: socket.id,
         tablet_number: tabletConnections.length + 1,
@@ -139,10 +138,10 @@ io.on("connection", (socket) => {
       if (checkAndReassign(t1DataCount, t2DataCount)) {
         console.log("Reassigning");
         logEvent({
-            logFile,
-            type: "INFO",
-            body: `Repartitioning tablet 1 count ${t1DataCount}, tablet 2 count ${t2DataCount}`,
-          });
+          logFile,
+          type: "INFO",
+          body: `Repartitioning tablet 1 count ${t1DataCount}, tablet 2 count ${t2DataCount}`,
+        });
         handleRepartition();
       }
     }
