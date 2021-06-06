@@ -6,9 +6,9 @@ const TABLET1_IP = process.argv[3];
 const TABLET2_IP = process.argv[4];
 const testCase = process.argv[5];
 const sleepTime = process.argv[6];
-
 const logEvent = require("../utils/logEvent");
-const checkAndDelete = require("../utils/checkFileExist");
+// const checkAndDelete = require("../utils/checkFileExist");
+const { Socket } = require("socket.io");
 let masterSocket = require("socket.io-client")(
   `http://${MASTER_IP}:${MASTER_PORT}`
 );
@@ -22,21 +22,24 @@ let tablet2Socket = require("socket.io-client")(
 let queries = require(`./../cases/${testCase}.json`);
 let metadata = [];
 
-let logFile = "./../logs/clientLogs.log";
+let logFile = `./../logs/clientLogs.log`;
 
-checkAndDelete(logFile);
-logEvent({
-  logFile,
-  type: "INFO",
-  body: `Client has started`,
-});
+
 
 const init = async () => {
   const connections = [masterSocket, tablet1Socket, tablet2Socket];
   const promises = connections.map((connection) => {
     return new Promise((resolve, reject) => {
       connection.on("connect", () => {
-        if (connection == masterSocket) masterSocket.send({ type: "client" });
+        if (connection == masterSocket) {
+          masterSocket.send({ type: "client" });
+          logFile = `./../logs/clientLogs_${connection.id}.log`;
+          logEvent({
+            logFile,
+            type: "INFO",
+            body: `Client has started`,
+          });
+        }
         resolve();
       });
     });
@@ -58,6 +61,12 @@ const targetServers = (keys) => {
   return [tablet1Keys, tablet2Keys];
 };
 
+const timeout = (time) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, time * 1000);
+  });
+};
+
 (async () => {
   await init();
   logEvent({
@@ -75,36 +84,36 @@ const targetServers = (keys) => {
     metadata = data;
   });
 
-  queries.forEach((query, index) => {
-    setTimeout(function () {
-      switch (query.type) {
-        case "Set":
-          //Handle set queries
-          handleSetRequest(query);
-          break;
+  let index = 0;
+  for (const query of queries) {
+    switch (query.type) {
+      case "Set":
+        //Handle set queries
+        await handleSetRequest(query);
+        break;
 
-        case "DeleteRow":
-          //Handle Delete row queries
-          handleDeleteRowRequest(query);
-          break;
+      case "DeleteRow":
+        //Handle Delete row queries
+        await handleDeleteRowRequest(query);
+        break;
 
-        case "DeleteCells":
-          //Handle Delete cells queries
-          handleDeleteCellsRequest(query);
-          break;
+      case "DeleteCells":
+        //Handle Delete cells queries
+        await handleDeleteCellsRequest(query);
+        break;
 
-        case "AddRow":
-          //Handle Add queries
-          handleAddRequest(query);
-          break;
+      case "AddRow":
+        //Handle Add queries
+        await handleAddRequest(query);
+        break;
 
-        case "Read":
-          //Handle Read queries
-          handleReadRequest(query);
-          break;
-      }
-    }, index * sleepTime);
-  });
+      case "Read":
+        //Handle Read queries
+        await handleReadRequest(query);
+        break;
+    }
+    await timeout(sleepTime);
+  }
 })();
 
 masterSocket.on("metadata", (data) => {
@@ -116,34 +125,34 @@ masterSocket.on("metadata", (data) => {
   metadata = data;
 });
 
-const handleReadRequest = (query) => {
+const handleReadRequest = async (query) => {
   //Send each query to it's target server
   promises = globalHandler("read", query);
-  Promise.all(promises);
+  await Promise.all(promises);
 };
 
-const handleDeleteCellsRequest = (query) => {
+const handleDeleteCellsRequest = async (query) => {
   //Send each query to it's target server
   promises = globalHandler("delete_cells", query);
-  Promise.all(promises);
+  await Promise.all(promises);
 };
 
-const handleSetRequest = (query) => {
+const handleSetRequest = async (query) => {
   //Send each query to it's target server
   promises = globalHandler("set", query);
-  Promise.all(promises);
+  await Promise.all(promises);
 };
 
-const handleAddRequest = (query) => {
+const handleAddRequest = async (query) => {
   //Send each query to it's target server
   promises = globalHandler("add_row", query);
-  Promise.all(promises);
+  await Promise.all(promises);
 };
 
-const handleDeleteRowRequest = (query) => {
+const handleDeleteRowRequest = async (query) => {
   //Send each query to it's target server
   promises = globalHandler("delete_row", query);
-  Promise.all(promises);
+  await Promise.all(promises);
 };
 
 const initQuery = (query) => {
