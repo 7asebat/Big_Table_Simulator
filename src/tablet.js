@@ -1,4 +1,4 @@
-const MASTER_PORT = 3000;
+const MASTER_PORT = 51234;
 const TABLET_PORT = process.argv[2];
 const DATABASENAME = process.argv[3];
 const MASTER_IP = process.argv[4];
@@ -7,13 +7,13 @@ const DATABASE = "mongodb://127.0.0.1:27017/" + DATABASENAME;
 let socket = require("socket.io-client")(`http://${MASTER_IP}:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
 const count2d = require("./../utils/countArr");
-var Mutex = require('async-mutex').Mutex;
+var Mutex = require("async-mutex").Mutex;
 const schema = require("./../models/tabletSchema");
 const mongoose = require("mongoose");
-const fs = require('fs');
+const fs = require("fs");
 
 let logFile = `./../logs/tablet${TABLET_PORT}Log.txt`;
-fs.writeFileSync(logFile,"BEGIN LOGS\n");
+fs.writeFileSync(logFile, "BEGIN LOGS\n");
 
 let models = [];
 //DB connection
@@ -55,8 +55,14 @@ let dataCount = 0;
 //Send an event to master server to update main table
 setInterval(function () {
   if (updatedData.length || deletedData.length || addedData.length) {
-    fs.appendFileSync(logFile,"Periodic update event to master\n");
-    socket.emit("periodic_update", addedData,updatedData, deletedData, dataCount);
+    fs.appendFileSync(logFile, "Periodic update event to master\n");
+    socket.emit(
+      "periodic_update",
+      addedData,
+      updatedData,
+      deletedData,
+      dataCount
+    );
     updatedData = [];
     deletedData = [];
     addedData = [];
@@ -66,7 +72,8 @@ setInterval(function () {
 const getTabletModel = (row_key) => {
   let tabletModel = -1;
   models.forEach((model) => {
-    if (model.start <= row_key && model.end >= row_key) tabletModel = model.model;
+    if (model.start <= row_key && model.end >= row_key)
+      tabletModel = model.model;
   });
   return tabletModel;
 };
@@ -77,11 +84,11 @@ socket.on("connect", () => {
 
 socket.on("partition", async (data) => {
   console.log("Received partition data");
-  fs.appendFileSync(logFile,"Received partition data\n");
+  fs.appendFileSync(logFile, "Received partition data\n");
 
   tablets = data;
   dataCount = count2d(tablets);
-  for(let i=0;i<models.length;i++){
+  for (let i = 0; i < models.length; i++) {
     await mongoose.connection.db.dropCollection(`${i}`);
   }
   models = [];
@@ -94,11 +101,11 @@ socket.on("partition", async (data) => {
       }
     });
   });
-  fs.appendFileSync(logFile,"Data partitioned successfully\n");
+  fs.appendFileSync(logFile, "Data partitioned successfully\n");
   console.log("Data partitioned successfully");
 });
 
-socket.on("data", (data,TABLET_SIZE) => {
+socket.on("data", (data, TABLET_SIZE) => {
   tablets = data;
   MAX_TABLET_SIZE = TABLET_SIZE;
   dataCount = count2d(tablets);
@@ -107,7 +114,7 @@ socket.on("data", (data,TABLET_SIZE) => {
     models.push({
       model: model,
       start: tb[0].user_id,
-      end: tb[0].user_id+MAX_TABLET_SIZE-1,
+      end: tb[0].user_id + MAX_TABLET_SIZE - 1,
     });
     model.collection.insertMany(tb, (err, docs) => {
       if (err) {
@@ -115,7 +122,7 @@ socket.on("data", (data,TABLET_SIZE) => {
       }
     });
   });
-  fs.appendFileSync(logFile,"Received initial data\n");
+  fs.appendFileSync(logFile, "Received initial data\n");
 });
 
 io.on("connection", (socket) => {
@@ -153,18 +160,17 @@ const existsInUpdatedData = (id) => {
 
 const requestHandler = async (type, q) => {
   let results = [];
-  for (const key of q.row_key){
+  for (const key of q.row_key) {
     let tabletModel = getTabletModel(key);
     if (tabletModel == -1 && type !== "AddRow")
       results.push(`row with user_id = ${key} wasn't found`);
     else {
       let result = {};
-      if(q.type !== "AddRow"){
+      if (q.type !== "AddRow") {
         result = await tabletModel.findOne({ user_id: key });
       }
 
       if (!result) results.push(`row with user_id = ${key} wasn't found`);
-
       else {
         resultObj = result;
         switch (type) {
@@ -191,7 +197,7 @@ const requestHandler = async (type, q) => {
           case "Read":
             results.push(resultObj);
             break;
-          
+
           case "AddRow":
             let newDoc = {};
             Object.entries(q.columns_data).forEach(([key, value]) => {
@@ -199,36 +205,48 @@ const requestHandler = async (type, q) => {
             });
 
             await lock.runExclusive(async () => {
-              let lastModel = models[models.length-1]["model"];
+              let lastModel = models[models.length - 1]["model"];
               let count = await lastModel.countDocuments({});
-              let lastUser = await (lastModel.find({}).sort({user_id:-1}).limit(1));
-              newDoc["user_id"]=lastUser[0].user_id + 1;
-              dataCount+=1;
-              if(count<MAX_TABLET_SIZE){
-                  await lastModel.create(newDoc);
-              }else{
-                  let newModel = mongoose.model(`${models.length}`,schema);
-                  models.push({model:newModel,start:newDoc["user_id"],end:newDoc["user_id"]+MAX_TABLET_SIZE-1});
-                  await newModel.create(newDoc);
-                  socket.emit("range_update", models.length,newDoc["user_id"]);
+              let lastUser = await lastModel
+                .find({})
+                .sort({ user_id: -1 })
+                .limit(1);
+              newDoc["user_id"] = lastUser[0].user_id + 1;
+              dataCount += 1;
+              if (count < MAX_TABLET_SIZE) {
+                await lastModel.create(newDoc);
+              } else {
+                let newModel = mongoose.model(`${models.length}`, schema);
+                models.push({
+                  model: newModel,
+                  start: newDoc["user_id"],
+                  end: newDoc["user_id"] + MAX_TABLET_SIZE - 1,
+                });
+                await newModel.create(newDoc);
+                socket.emit("range_update", models.length, newDoc["user_id"]);
               }
               addedData.push(newDoc);
               results.push(newDoc);
             });
 
-          break;
+            break;
 
           case "DeleteRow":
             deletedEl = resultObj;
             await tabletModel.deleteOne({ user_id: key });
             results.push(`Entry with key = ${key} is deleted successfully`);
             deletedData.push(deletedEl);
-            dataCount -=1;
+            dataCount -= 1;
             break;
         }
       }
     }
-  };
-  fs.appendFileSync(logFile,`Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(results)}\ntimeStamp= ${new Date().getTime()}\n`);
+  }
+  fs.appendFileSync(
+    logFile,
+    `Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(
+      results
+    )}\ntimeStamp= ${new Date().getTime()}\n`
+  );
   return results;
 };
