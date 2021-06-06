@@ -4,7 +4,8 @@ const TABLET2_PORT = 51236;
 const MASTER_IP = process.argv[2];
 const TABLET1_IP = process.argv[3];
 const TABLET2_IP = process.argv[4];
-
+const logEvent = require("../utils/logEvent");
+const checkAndDelete = require("../utils/checkFileExist");
 let masterSocket = require("socket.io-client")(
   `http://${MASTER_IP}:${MASTER_PORT}`
 );
@@ -19,9 +20,14 @@ let queries = require("./../cases/test1.json");
 const fs = require("fs");
 let metadata = [];
 
-let logFile = "./../logs/clientLogs.txt";
+let logFile = "./../logs/clientLogs.log";
 
-fs.writeFileSync(logFile, "BEGIN LOGS\n");
+checkAndDelete(logFile);
+logEvent({
+  logFile,
+  type: "INFO",
+  body: `Client has started`,
+});
 
 const init = async () => {
   const connections = [masterSocket, tablet1Socket, tablet2Socket];
@@ -52,14 +58,18 @@ const targetServers = (keys) => {
 
 (async () => {
   await init();
-  fs.appendFileSync(logFile, `Connected to master and the 2 tablet servers\n`);
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: `Client has connected to Tablet on http://${TABLET1_IP}:${TABLET1_PORT} and on http://${TABLET2_IP}:${TABLET2_PORT} and to Master on http://${MASTER_IP}:${MASTER_PORT}`,
+  });
 
   masterSocket.on("partition", (data) => {
-    console.log("Received new metadata", data);
-    fs.appendFileSync(
+    logEvent({
       logFile,
-      `Received new metadata\n ${JSON.stringify(data)}\n`
-    );
+      type: "INFO",
+      body: `Received initial metadata\t-\t${JSON.stringify(data)}`,
+    });
     metadata = data;
   });
 
@@ -96,9 +106,12 @@ const targetServers = (keys) => {
 })();
 
 masterSocket.on("metadata", (data) => {
-  fs.appendFileSync(logFile, `Received metadata\n ${JSON.stringify(data)}\n`);
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: `Received new metadata\t-\t${JSON.stringify(data)}`,
+  });
   metadata = data;
-  console.log("Received metadata from master\n", metadata);
 });
 
 const handleReadRequest = (query) => {
@@ -171,11 +184,13 @@ const globalHandler = (type, query) => {
               index + 1 == 1
                 ? "Result from tablet server 1"
                 : "Result from tablet server 2";
-            fs.appendFileSync(
+            logEvent({
               logFile,
-              `Sending Query\n ${JSON.stringify(q)}\n`
-            );
-            fs.appendFileSync(logFile, `${message}\n ${JSON.stringify(res)}\n`);
+              type: "QUERY",
+              body: `Executing query: ${JSON.stringify(
+                q
+              )} \t-\t Query Result: ${JSON.stringify(res)}`,
+            });
             resolve(res);
           });
         })

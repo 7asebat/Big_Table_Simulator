@@ -12,8 +12,10 @@ const schema = require("./../models/tabletSchema");
 const mongoose = require("mongoose");
 const fs = require("fs");
 const logEvent = require("../utils/logEvent");
+const checkAndDelete = require("../utils/checkFileExist");
 
 let logFile = `./../logs/tablet${TABLET_PORT}.log`;
+checkAndDelete(logFile);
 logEvent({
   logFile,
   type: "INFO",
@@ -60,7 +62,11 @@ let dataCount = 0;
 //Send an event to master server to update main table
 setInterval(function () {
   if (updatedData.length || deletedData.length || addedData.length) {
-    fs.appendFileSync(logFile, "Periodic update event to master\n");
+    logEvent({
+      logFile,
+      type: "INFO",
+      body: `Periodic update event to master`,
+    });
     socket.emit(
       "periodic_update",
       addedData,
@@ -89,7 +95,6 @@ socket.on("connect", () => {
 
 socket.on("partition", async (data) => {
   console.log("Received partition data");
-  fs.appendFileSync(logFile, "Received partition data\n");
   logEvent({
     logFile,
     type: "INFO",
@@ -145,29 +150,33 @@ socket.on("data", (data, TABLET_SIZE) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("Client connected ", socket.id);
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: `Client connected with socket id = ${socket.id}`,
+  });
   socket.on("read", async (q, cb) => {
-    results = await requestHandler("Read", q);
+    results = await requestHandler("Read", q, socket);
     cb(results);
   });
 
   socket.on("delete_cells", async (q, cb) => {
-    results = await requestHandler("DeleteCells", q);
+    results = await requestHandler("DeleteCells", q, socket);
     cb(results);
   });
 
   socket.on("delete_row", async (q, cb) => {
-    results = await requestHandler("DeleteRow", q);
+    results = await requestHandler("DeleteRow", q, socket);
     cb(results);
   });
 
   socket.on("set", async (q, cb) => {
-    results = await requestHandler("Set", q);
+    results = await requestHandler("Set", q, socket);
     cb(results);
   });
 
   socket.on("add_row", async (q, cb) => {
-    results = await requestHandler("AddRow", q);
+    results = await requestHandler("AddRow", q, socket);
     cb(results);
   });
 });
@@ -177,7 +186,7 @@ const existsInUpdatedData = (id) => {
   return found;
 };
 
-const requestHandler = async (type, q) => {
+const requestHandler = async (type, q, socket) => {
   let results = [];
   for (const key of q.row_key) {
     let tabletModel = getTabletModel(key);
@@ -265,7 +274,7 @@ const requestHandler = async (type, q) => {
   logEvent({
     logFile,
     type: "QUERY",
-    body: `Executing query: ${JSON.stringify(
+    body: `Executing query of client ${socket.id}: ${JSON.stringify(
       q
     )} \t-\t Query Result: ${JSON.stringify(results)}`,
   });
