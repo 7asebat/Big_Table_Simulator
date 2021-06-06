@@ -1,9 +1,10 @@
 const MASTER_PORT = 3000;
 const TABLET_PORT = process.argv[2];
 const DATABASENAME = process.argv[3];
+const MASTER_IP = process.argv[4];
 let MAX_TABLET_SIZE = 200;
 const DATABASE = "mongodb://127.0.0.1:27017/" + DATABASENAME;
-let socket = require("socket.io-client")(`http://localhost:${MASTER_PORT}`);
+let socket = require("socket.io-client")(`http://${MASTER_IP}:${MASTER_PORT}`);
 const io = require("socket.io")(TABLET_PORT);
 const count2d = require("./../utils/countArr");
 var Mutex = require('async-mutex').Mutex;

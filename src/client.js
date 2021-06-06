@@ -1,15 +1,18 @@
-const MASTER_PORT = 3000;
+const MASTER_PORT = 51234;
 const TABLET1_PORT = 4000;
 const TABLET2_PORT = 5000;
+const MASTER_IP = process.argv[2];
+const TABLET1_IP = process.argv[3];
+const TABLET2_IP = process.argv[4];
 
 let masterSocket = require("socket.io-client")(
-  `http://localhost:${MASTER_PORT}`
+  `http://${MASTER_IP}:${MASTER_PORT}`
 );
 let tablet1Socket = require("socket.io-client")(
-  `http://localhost:${TABLET1_PORT}`
+  `http://${TABLET1_IP}:${TABLET1_PORT}`
 );
 let tablet2Socket = require("socket.io-client")(
-  `http://localhost:${TABLET2_PORT}`
+  `http://${TABLET2_IP}:${TABLET2_PORT}`
 );
 
 let queries = require("./../cases/test1.json");
