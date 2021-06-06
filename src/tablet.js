@@ -77,7 +77,7 @@ setInterval(function () {
     deletedData = [];
     addedData = [];
   }
-}, 60 * 1000); // 60 * 1000 milsec
+}, 10 * 1000);
 
 const getTabletModel = (row_key) => {
   let tabletModel = -1;
@@ -94,61 +94,69 @@ socket.on("connect", () => {
 
 socket.on("partition", async (data) => {
   console.log("Received partition data");
-  logEvent({
-    logFile,
-    type: "INFO",
-    body: "Received partition data from master",
-  });
-
-  tablets = data;
-  dataCount = count2d(tablets);
-  for (let i = 0; i < models.length; i++) {
-    await mongoose.connection.db.dropCollection(`${i}`);
-  }
-  models = [];
-  tablets.forEach((tb, index) => {
-    var model = mongoose.model(`${index}`, schema);
-    models.push(model);
-    model.collection.insertMany(tb, (err) => {
-      if (err) {
-        console.log(err);
-      }
+  await lock.runExclusive(async () => {
+    logEvent({
+      logFile,
+      type: "INFO",
+      body: "Received partition data from master",
     });
-  });
-  logEvent({
-    logFile,
-    type: "INFO",
-    body: "Finished partitioning data",
-  });
 
-  console.log("Data partitioned successfully");
-});
+    tablets = data;
+    dataCount = count2d(tablets);
+    for (let i = 0; i < models.length; i++) {
+      await mongoose.connection.db.dropCollection(`${i}`);
+    }
+    models = [];
+    tablets.forEach((tb, index) => {
+      var model = mongoose.model(`${index}`, schema);
+      models.push({
+        model: model,
+        start: tb[0].user_id,
+        end: tb[0].user_id + MAX_TABLET_SIZE - 1,
+      });
+      model.collection.insertMany(tb, (err) => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    });
+    logEvent({
+      logFile,
+      type: "INFO",
+      body: "Finished partitioning data",
+    });
 
-socket.on("data", (data, TABLET_SIZE) => {
-  tablets = data;
-  MAX_TABLET_SIZE = TABLET_SIZE;
-  dataCount = count2d(tablets);
-  tablets.forEach((tb, index) => {
-    var model = mongoose.model(`${index}`, schema);
-    models.push({
-      model: model,
-      start: tb[0].user_id,
-      end: tb[0].user_id + MAX_TABLET_SIZE - 1,
-    });
-    model.collection.insertMany(tb, (err, docs) => {
-      if (err) {
-        console.log(err);
-      }
-    });
-  });
-  logEvent({
-    logFile,
-    type: "INFO",
-    body: "Received initial data from master",
+    console.log("Data partitioned successfully");
   });
 });
 
-io.on("connection", (socket) => {
+socket.on("data", async (data, TABLET_SIZE) => {
+  await lock.runExclusive(async () => {
+    tablets = data;
+    MAX_TABLET_SIZE = TABLET_SIZE;
+    dataCount = count2d(tablets);
+    tablets.forEach((tb, index) => {
+      var model = mongoose.model(`${index}`, schema);
+      models.push({
+        model: model,
+        start: tb[0].user_id,
+        end: tb[0].user_id + MAX_TABLET_SIZE - 1,
+      });
+      model.collection.insertMany(tb, (err, docs) => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    });
+    logEvent({
+      logFile,
+      type: "INFO",
+      body: "Received initial data from master",
+    });
+  });
+});
+
+io.on("connection", async (socket) => {
   logEvent({
     logFile,
     type: "INFO",

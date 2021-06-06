@@ -24,8 +24,6 @@ let metadata = [];
 
 let logFile = `./../logs/clientLogs.log`;
 
-
-
 const init = async () => {
   const connections = [masterSocket, tablet1Socket, tablet2Socket];
   const promises = connections.map((connection) => {
@@ -79,7 +77,7 @@ const timeout = (time) => {
     logEvent({
       logFile,
       type: "INFO",
-      body: `Received initial metadata\t-\t${JSON.stringify(data)}`,
+      body: `Received metadata\t-\t${JSON.stringify(data)}`,
     });
     metadata = data;
   });

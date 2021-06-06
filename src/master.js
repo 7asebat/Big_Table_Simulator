@@ -42,7 +42,7 @@ io.on("connection", (socket) => {
         socket_id: socket.id,
         tablet_number: tabletConnections.length + 1,
         data_count: tabletsIds[1] - tabletsIds[0] + 1,
-        tablet_port:data.port
+        tablet_port: data.port,
       });
       start = Math.floor(tabletsIds[0] / MAX_TABLET_SIZE);
       end = Math.ceil(tabletsIds[1] / MAX_TABLET_SIZE);
@@ -150,7 +150,7 @@ io.on("connection", (socket) => {
 
   //Checks partitioning
   const checkAndReassign = (t1DataCount, t2DataCount) => {
-    const reassigningFactor = (1 / 3) * tablets.length;
+    const reassigningFactor = (1 / 10) * tablets.length;
     if (
       Math.abs(t1DataCount - t2DataCount) >=
       reassigningFactor * MAX_TABLET_SIZE
