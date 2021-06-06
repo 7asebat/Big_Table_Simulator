@@ -185,7 +185,7 @@ const existsInUpdatedData = (id) => {
   return found;
 };
 
-const requestHandler = async (type, q, socket) => {
+const requestHandler = async (type, q, clientSocket) => {
   let results = [];
   for (const key of q.row_key) {
     let tabletModel = getTabletModel(key);
@@ -273,7 +273,7 @@ const requestHandler = async (type, q, socket) => {
   logEvent({
     logFile,
     type: "QUERY",
-    body: `Executing query of client ${socket.id}: ${JSON.stringify(
+    body: `Executing query of client ${clientSocket.id}: ${JSON.stringify(
       q
     )} \t-\t Query Result: ${JSON.stringify(results)}`,
   });
