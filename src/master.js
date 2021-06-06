@@ -42,6 +42,7 @@ io.on("connection", (socket) => {
         socket_id: socket.id,
         tablet_number: tabletConnections.length + 1,
         data_count: tabletsIds[1] - tabletsIds[0] + 1,
+        tablet_port:data.port
       });
       start = Math.floor(tabletsIds[0] / MAX_TABLET_SIZE);
       end = Math.ceil(tabletsIds[1] / MAX_TABLET_SIZE);
@@ -164,8 +165,9 @@ io.on("connection", (socket) => {
   //Sends data and metadata to tablets and clients
   const handleRepartition = () => {
     tabletConnections.forEach((connection, index) => {
+      let metaDataIndex = connection.tablet_port == "51235" ? 0 : 1;
       socketId = connection.socket_id;
-      tabletsIds = metadata[index].tablets_range;
+      tabletsIds = metadata[metaDataIndex].tablets_range;
       start = Math.floor(tabletsIds[0] / MAX_TABLET_SIZE);
       end = Math.ceil(tabletsIds[1] / MAX_TABLET_SIZE);
       io.to(socketId).emit("partition", tablets.slice(start, end));
