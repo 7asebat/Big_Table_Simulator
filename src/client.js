@@ -1,6 +1,6 @@
 const MASTER_PORT = 51234;
-const TABLET1_PORT = 4000;
-const TABLET2_PORT = 5000;
+const TABLET1_PORT = 51235;
+const TABLET2_PORT = 51236;
 const MASTER_IP = process.argv[2];
 const TABLET1_IP = process.argv[3];
 const TABLET2_IP = process.argv[4];
@@ -63,7 +63,7 @@ const targetServers = (keys) => {
     metadata = data;
   });
 
-  queries.forEach((query,index) => {
+  queries.forEach((query, index) => {
     setTimeout(function () {
       switch (query.type) {
         case "Set":
@@ -91,7 +91,7 @@ const targetServers = (keys) => {
           handleReadRequest(query);
           break;
       }
-    },index*1000);
+    }, index * 1000);
   });
 })();
 
