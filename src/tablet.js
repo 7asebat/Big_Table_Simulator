@@ -11,9 +11,14 @@ var Mutex = require("async-mutex").Mutex;
 const schema = require("./../models/tabletSchema");
 const mongoose = require("mongoose");
 const fs = require("fs");
+const logEvent = require("../utils/logEvent");
 
-let logFile = `./../logs/tablet${TABLET_PORT}Log.txt`;
-fs.writeFileSync(logFile, "BEGIN LOGS\n");
+let logFile = `./../logs/tablet${TABLET_PORT}.log`;
+logEvent({
+  logFile,
+  type: "INFO",
+  body: `Tablet has started on port ${TABLET_PORT}, connected to master on http://${MASTER_IP}:${MASTER_PORT}`,
+});
 
 let models = [];
 //DB connection
@@ -85,6 +90,11 @@ socket.on("connect", () => {
 socket.on("partition", async (data) => {
   console.log("Received partition data");
   fs.appendFileSync(logFile, "Received partition data\n");
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: "Received partition data from master",
+  });
 
   tablets = data;
   dataCount = count2d(tablets);
@@ -101,7 +111,12 @@ socket.on("partition", async (data) => {
       }
     });
   });
-  fs.appendFileSync(logFile, "Data partitioned successfully\n");
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: "Finished partitioning data",
+  });
+
   console.log("Data partitioned successfully");
 });
 
@@ -122,7 +137,11 @@ socket.on("data", (data, TABLET_SIZE) => {
       }
     });
   });
-  fs.appendFileSync(logFile, "Received initial data\n");
+  logEvent({
+    logFile,
+    type: "INFO",
+    body: "Received initial data from master",
+  });
 });
 
 io.on("connection", (socket) => {
@@ -242,11 +261,14 @@ const requestHandler = async (type, q) => {
       }
     }
   }
-  fs.appendFileSync(
+
+  logEvent({
     logFile,
-    `Received query\n ${JSON.stringify(q)}\n Result of query \n${JSON.stringify(
-      results
-    )}\ntimeStamp= ${new Date().getTime()}\n`
-  );
+    type: "QUERY",
+    body: `Executing query: ${JSON.stringify(
+      q
+    )} \t-\t Query Result: ${JSON.stringify(results)}`,
+  });
+
   return results;
 };
