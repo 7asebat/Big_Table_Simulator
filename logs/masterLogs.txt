@@ -1,0 +1,2 @@
+BEGIN LOGS
+Client with socket id = l64fY2yjqNKNuLvFAAAB has connected

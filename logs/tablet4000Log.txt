@@ -1,0 +1,4 @@
+BEGIN LOGS
+Received initial data
+Received partition data
+Data partitioned successfully
