@@ -150,7 +150,7 @@ io.on("connection", (socket) => {
 
   //Checks partitioning
   const checkAndReassign = (t1DataCount, t2DataCount) => {
-    const reassigningFactor = (1 / 10) * tablets.length;
+    const reassigningFactor = (1 / 5) * tablets.length;
     if (
       Math.abs(t1DataCount - t2DataCount) >=
       reassigningFactor * MAX_TABLET_SIZE
