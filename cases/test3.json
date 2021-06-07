@@ -1,0 +1,42 @@
+[
+  {
+    "type": "Read",
+    "row_key": [3333, 2501, 2020, 5001, 7600, 5930],
+    "columns": {}
+  },
+  {
+    "type": "Set",
+    "row_key": 5000,
+    "columns_data": { "user_screen_name": "shoma", "indegree": 300 }
+  },
+  {
+    "type": "DeleteRow",
+    "row_key": [1000, 2000, 3000, 6000, 7000],
+    "columns": {}
+  },
+  {
+    "type": "AddRow",
+    "row_key": 2000,
+    "columns_data": { "user_screen_name": "Michael", "indegree": 300 }
+  },
+  {
+    "type": "AddRow",
+    "row_key": 200,
+    "columns_data": { "user_screen_name": "Mohamed", "indegree": 350 }
+  },
+  {
+    "type": "DeleteCells",
+    "row_key": 5000,
+    "columns": ["user_screen_name", "indegree"]
+  },
+  {
+    "type": "Read",
+    "row_key": [10000, 1000],
+    "columns": {}
+  },
+  {
+    "type": "AddRow",
+    "row_key": 200,
+    "columns_data": { "user_screen_name": "Maxine", "indegree": 400 }
+  }
+]

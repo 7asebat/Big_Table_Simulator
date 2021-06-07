@@ -1,4 +1,4 @@
-const MAX_TABLET_SIZE = 1000;
+const MAX_TABLET_SIZE = 200;
 const bigTable = require("./../assets/users.json");
 const partitionData = require("./../utils/partitionData.js");
 const generateMetadata = require("./../utils/generateMetadata.js");
@@ -150,13 +150,17 @@ io.on("connection", (socket) => {
 
   //Checks partitioning
   const checkAndReassign = (t1DataCount, t2DataCount) => {
-    const reassigningFactor = (1 / 5) * tablets.length;
+    const reassigningFactor = 2;
     if (
       Math.abs(t1DataCount - t2DataCount) >=
       reassigningFactor * MAX_TABLET_SIZE
     ) {
       tablets = partitionData(bigTable, MAX_TABLET_SIZE);
       metadata = generateMetadata(tablets, MAX_TABLET_SIZE, bigTable.length);
+      tabletConnections[0].data_count =
+        metadata[0].tablets_range[1] - metadata[0].tablets_range[0] + 1;
+      tabletConnections[1].data_count =
+        metadata[1].tablets_range[1] - metadata[1].tablets_range[1] + 1;
       return true;
     }
     return false;
