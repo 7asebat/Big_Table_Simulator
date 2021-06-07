@@ -84,6 +84,7 @@ const timeout = (time) => {
 
   let index = 0;
   for (const query of queries) {
+    await timeout(sleepTime);
     switch (query.type) {
       case "Set":
         //Handle set queries
@@ -110,7 +111,6 @@ const timeout = (time) => {
         await handleReadRequest(query);
         break;
     }
-    await timeout(sleepTime);
   }
 })();
 
@@ -183,6 +183,8 @@ const initQuery = (query) => {
 const globalHandler = (type, query) => {
   serverQueries = initQuery(query);
   promises = [];
+  console.log(metadata);
+  console.log(serverQueries);
   serverQueries.forEach((q, index) => {
     if (!isEmptyObject(q)) {
       const tabletSocket = index + 1 == 1 ? tablet1Socket : tablet2Socket;
