@@ -210,6 +210,7 @@ const requestHandler = async (type, q, clientSocket) => {
         resultObj = result;
         switch (type) {
           case "Set":
+            await lock.runExclusive(async () => {
             Object.entries(q.columns_data).forEach(([key, value]) => {
               result[`${key}`] = value;
             });
@@ -217,9 +218,12 @@ const requestHandler = async (type, q, clientSocket) => {
               updatedData.push(resultObj);
             results.push(resultObj);
             await result.save();
+          });
+
             break;
 
           case "DeleteCells":
+            await lock.runExclusive(async () => {
             q.columns.forEach((column) => {
               result[`${column}`] = null;
             });
@@ -227,9 +231,12 @@ const requestHandler = async (type, q, clientSocket) => {
               updatedData.push(resultObj);
             results.push(resultObj);
             await result.save();
+          });
+
             break;
 
           case "Read":
+            while(lock.isLocked());
             results.push(resultObj);
             break;
 
@@ -267,11 +274,14 @@ const requestHandler = async (type, q, clientSocket) => {
             break;
 
           case "DeleteRow":
+            await lock.runExclusive(async () => {
             deletedEl = resultObj;
             await tabletModel.deleteOne({ user_id: key });
             results.push(`Entry with key = ${key} is deleted successfully`);
             deletedData.push(deletedEl);
             dataCount -= 1;
+          });
+
             break;
         }
       }
